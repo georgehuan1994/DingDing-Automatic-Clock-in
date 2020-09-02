@@ -1,7 +1,7 @@
 /*
  * @Author: George Huan
  * @Date: 2020-08-03 09:30:30
- * @LastEditTime: 2020-09-02 09:41:10
+ * @LastEditTime: 2020-09-02 12:03:14
  * @Description: DingDing-Automatic-Clock-in (tasker + AutoJs)
  */
 
@@ -16,6 +16,15 @@ const UPPER_BOUND = 5 * 60 * 1000 // 最大随机等待时间：5min
 const BUTTON_HOME_POS_X = 540 // Home键坐标x
 const BUTTON_HOME_POS_Y = 2278 // Home键坐标y
 
+const BUTTON_KAOQIN_X = 130 // 考勤打卡控件坐标x
+const BUTTON_KAOQIN_Y = 1007 // 考勤打卡控件坐标y
+
+const BUTTON_DAKA_X = 540 // 打卡按钮坐标x
+const BUTTON_DAKA_Y = 1325 // 打卡按钮坐标y
+
+const BUTTON_SEND_EMAIL_X = 1014 // 邮件发送按钮坐标x
+const BUTTON_SEND_EMAIL_Y = 138 // 邮件发送按钮坐标y
+
 const SCREEN_BRIGHTNESS = 20 // 执行时的屏幕亮度（0-255）
 
 var weekday = new Array(7);
@@ -28,6 +37,7 @@ weekday[5] = "Friday"
 weekday[6] = "Saturday"
 var needWaiting = true
 var currentDate = new Date()
+var message = ""
 
  // 检查无障碍权限启动
 auto.waitFor("fast")
@@ -219,7 +229,7 @@ function in_kaoqin(){
         anniu_kaoqin.click()
     }
     else {
-        click(130,1007)
+        click(BUTTON_KAOQIN_X,BUTTON_KAOQIN_Y)
     }
     console.info("正在进入考勤打卡页面...")
     sleep(6000)
@@ -233,6 +243,7 @@ function do_clock_in() {
     console.info("上班打卡...")
     if (null != textContains("已打卡").findOne(1000)) {
         console.log("已打卡")
+        message = "已打卡"
         toast("已打卡")
         home()
         sleep(1000)
@@ -242,11 +253,11 @@ function do_clock_in() {
     textContains("前台大门").waitFor()
     console.log("已连接")
     sleep(1000)
-    click(540,1325) // 打卡按钮坐标
+    click(BUTTON_DAKA_X,BUTTON_DAKA_Y)
     sleep(100)
-    click(540,1325)
+    click(BUTTON_DAKA_X,BUTTON_DAKA_Y)
     sleep(100)
-    click(540,1325)
+    click(BUTTON_DAKA_X,BUTTON_DAKA_Y)
     console.log("按下打卡按钮")
     sleep(1000)
     handle_late()
@@ -256,6 +267,7 @@ function do_clock_in() {
     sleep(2000);
     if (null != textContains("上班打卡成功").findOne(3000)) {
         console.log("上班打卡成功")
+        message = "上班打卡成功"
         toast("上班打卡成功")
     }
     home()
@@ -274,6 +286,7 @@ function do_clock_out() {
     sleep(1000)
     if (null != textContains("早退打卡").clickable(true).findOne(1000)) {
         console.log("早退打卡")
+        message = "早退打卡"
         className("android.widget.Button").text("早退打卡").findOnce().parent().click()
     }
     if (null != textMatches("我知道了").clickable(true).findOne(1000)) {
@@ -282,6 +295,7 @@ function do_clock_out() {
     sleep(2000);
     if (null != textContains("下班打卡成功").findOne(3000)) {
         console.log("下班打卡成功")
+        message = "下班打卡成功"
         toast("下班打卡成功")
     }
     home()
@@ -293,7 +307,7 @@ function send_email(){
     app.sendEmail({
         email: [EMAILL_ADDRESS],
         subject: "打卡成功",
-        text: getCurrentDate() + " " + getCurrentTime()
+        text: getCurrentDate() + " " + getCurrentTime() + " " + message
     })
     textContains("发送邮件").waitFor()
     if (null != textMatches("网易邮箱大师").findOne(3000)) {
@@ -301,7 +315,7 @@ function send_email(){
         anniu_email.click()
     }
     textContains("收件人").waitFor()
-    click(1014,138)
+    click(BUTTON_SEND_EMAIL_X,BUTTON_SEND_EMAIL_Y)
     console.log("已发送")
     home()
     sleep(1000)
