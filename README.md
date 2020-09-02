@@ -430,8 +430,10 @@ AutoJs是安卓平台上的JavaScript自动化工具 https://github.com/hyb1996/
 PC和手机连接到同一网络，使用 VSCode + Auto.js插件（在扩展中心搜索 "hyb1996"） 可方便的调试并将脚本保存到手机上
 
 ### Tasker
+![](https://github.com/georgehuan1994/DingDing-Automatic-Clock-in/blob/master/%E5%9B%BE%E7%89%87/%E6%88%AA%E5%9B%BE_004.jpg)
 1. 添加一个 "通知" 操作任务，通知标题修改为 "定时打卡"，通知文字随意，通知优先级设为 1
 2. 添加两个配置文件，使用日期和时间作为条件，分别在上班前和下班后触发
+或[下载任务和配置文件](https://github.com/georgehuan1994/DingDing-Automatic-Clock-in/tree/master/Tasker配置 "下载配置")导入Tasker中
 
 ### 邮箱应用
 使用原生的邮箱容易受限，导致邮件发送失败，所以找一个你喜欢的邮箱应用并添加一个邮箱地址
