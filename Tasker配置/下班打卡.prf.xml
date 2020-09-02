@@ -1,0 +1,60 @@
+<TaskerData sr="" dvi="1" tv="5.7.0-beta.6">
+	<Profile sr="prof2" ve="2">
+		<cdate>1598233217458</cdate>
+		<edate>1599038020569</edate>
+		<id>2</id>
+		<mid0>9</mid0>
+		<nme>下班打卡</nme>
+		<Day sr="con0">
+			<mday0>1</mday0>
+			<mday1>2</mday1>
+			<mday10>17</mday10>
+			<mday11>21</mday11>
+			<mday12>22</mday12>
+			<mday13>23</mday13>
+			<mday14>24</mday14>
+			<mday15>28</mday15>
+			<mday16>29</mday16>
+			<mday17>30</mday17>
+			<mday2>3</mday2>
+			<mday3>7</mday3>
+			<mday4>8</mday4>
+			<mday5>9</mday5>
+			<mday6>10</mday6>
+			<mday7>14</mday7>
+			<mday8>15</mday8>
+			<mday9>16</mday9>
+			<mnth0>8</mnth0>
+		</Day>
+		<Time sr="con1">
+			<fh>21</fh>
+			<fm>0</fm>
+			<th>21</th>
+			<tm>0</tm>
+		</Time>
+	</Profile>
+	<Task sr="task9">
+		<cdate>1599037676278</cdate>
+		<edate>1599038254329</edate>
+		<id>9</id>
+		<nme>发送通知</nme>
+		<pri>100</pri>
+		<Action sr="act0" ve="7">
+			<code>523</code>
+			<Str sr="arg0" ve="3">定时打卡</Str>
+			<Str sr="arg1" ve="3">触发AutoJs打卡进程</Str>
+			<Str sr="arg10" ve="3"/>
+			<Str sr="arg11" ve="3"/>
+			<Img sr="arg2" ve="2">
+				<nme>mw_action_account_box</nme>
+			</Img>
+			<Int sr="arg3" val="0"/>
+			<Int sr="arg4" val="0"/>
+			<Int sr="arg5" val="1"/>
+			<Int sr="arg6" val="0"/>
+			<Int sr="arg7" val="0"/>
+			<Int sr="arg8" val="0"/>
+			<Str sr="arg9" ve="3"/>
+		</Action>
+	</Task>
+</TaskerData>

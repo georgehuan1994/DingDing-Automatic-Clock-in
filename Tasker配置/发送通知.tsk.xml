@@ -1,0 +1,26 @@
+<TaskerData sr="" dvi="1" tv="5.7.0-beta.6">
+	<Task sr="task9">
+		<cdate>1599037676278</cdate>
+		<edate>1599038254329</edate>
+		<id>9</id>
+		<nme>发送通知</nme>
+		<pri>100</pri>
+		<Action sr="act0" ve="7">
+			<code>523</code>
+			<Str sr="arg0" ve="3">定时打卡</Str>
+			<Str sr="arg1" ve="3">触发AutoJs打卡进程</Str>
+			<Str sr="arg10" ve="3"/>
+			<Str sr="arg11" ve="3"/>
+			<Img sr="arg2" ve="2">
+				<nme>mw_action_account_box</nme>
+			</Img>
+			<Int sr="arg3" val="0"/>
+			<Int sr="arg4" val="0"/>
+			<Int sr="arg5" val="1"/>
+			<Int sr="arg6" val="0"/>
+			<Int sr="arg7" val="0"/>
+			<Int sr="arg8" val="0"/>
+			<Str sr="arg9" ve="3"/>
+		</Action>
+	</Task>
+</TaskerData>
