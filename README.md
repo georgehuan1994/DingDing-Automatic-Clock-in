@@ -37,23 +37,24 @@ const BUNDLE_ID_DD = "com.alibaba.android.rimet"
 const BUNDLE_ID_XMSF = "com.xiaomi.xmsf"
 const BUNDLE_ID_MAIL = "com.netease.mail"
 const EMAILL_ADDRESS = "收件邮箱地址"
+const NAME_OF_ATTENDANCE_MACHINE = "前台大门" // 考勤机名称片段
 
 const LOWER_BOUND = 0 * 60 * 1000 // 最小随机等待时间：1min
 const UPPER_BOUND = 0 * 60 * 1000 // 最大随机等待时间：5min
 
-const BUTTON_HOME_POS_X = 540 // Home键坐标x
-const BUTTON_HOME_POS_Y = 2278 // Home键坐标y
+const BUTTON_HOME_POS_X = 540   // Home键坐标x
+const BUTTON_HOME_POS_Y = 2278  // Home键坐标y
 
-const BUTTON_KAOQIN_X = 130 // 考勤打卡控件坐标x
-const BUTTON_KAOQIN_Y = 1007 // 考勤打卡控件坐标y
+const BUTTON_KAOQIN_X = 130     // 考勤打卡控件坐标x
+const BUTTON_KAOQIN_Y = 1007    // 考勤打卡控件坐标y
 
-const BUTTON_DAKA_X = 540 // 打卡按钮坐标x
-const BUTTON_DAKA_Y = 1325 // 打卡按钮坐标y
+const BUTTON_DAKA_X = 540   // 打卡按钮坐标x
+const BUTTON_DAKA_Y = 1325  // 打卡按钮坐标y
 
-const BUTTON_SEND_EMAIL_X = 1014 // 邮件发送按钮坐标x
-const BUTTON_SEND_EMAIL_Y = 138 // 邮件发送按钮坐标y
+const BUTTON_SEND_EMAIL_X = 1014    // 邮件发送按钮坐标x
+const BUTTON_SEND_EMAIL_Y = 138     // 邮件发送按钮坐标y
 
-const SCREEN_BRIGHTNESS = 20 // 执行时的屏幕亮度（0-255）
+const SCREEN_BRIGHTNESS = 20    // 执行时的屏幕亮度（0-255）
 
 var weekday = new Array(7);
 weekday[0] = "Sunday"
@@ -103,10 +104,9 @@ function printNotification(notification) {
 }
 
 function do_main(){
-    // 显示控制台，等待控制台出现，调整控制台尺寸
-    console.show() 
-    sleep(100)
-    console.setSize(800,450)
+    console.show()              // 显示控制台
+    sleep(100)                  // 等待控制台出现
+    console.setSize(800,450)    // 调整控制台尺寸
 
     currentDate = new Date()
     console.info("当前：" + getCurrentDate() + " " + getCurrentTime()) 
@@ -117,13 +117,14 @@ function do_main(){
     
     bright_screen()     // 唤醒屏幕
     unlock_screen()     // 解锁屏幕
-    stop_app()          // 结束钉钉进程
-    wait_a_minute()     // 随机等待一段时间
+    stop_app()          // 结束钉钉
+    wait_a_minute()     // 随机等待
     is_login()          // 自动登录
-    handle_updata()     // 处理更新弹窗
-    handle_late()       // 处理迟到打卡
+    handle_updata()     // 处理更新
+    handle_late()       // 处理迟到
     in_gongzuo()        // 进入工作台
     in_kaoqin()         // 进入考勤打卡界面
+
     if (currentDate.getHours() <= 12) {
         do_clock_in()   // 上班打卡
     }
@@ -142,7 +143,7 @@ function do_main(){
 function bright_screen() {
     console.info("唤醒设备")
     device.wakeUpIfNeeded() // 唤醒设备
-    device.keepScreenOn() // 保持亮屏
+    device.keepScreenOn()   // 保持亮屏
     console.log("已唤醒")
     sleep(1000) // 等待屏幕亮起
     if (!device.isScreenOn()) {
@@ -155,23 +156,27 @@ function bright_screen() {
 function unlock_screen() {
     console.info("解锁屏幕")
     gesture(320,[540,device.height * 0.9],[540,device.height * 0.1]) // 上滑解锁
-    sleep(1000)
+    sleep(1000) // 等待解锁动画完成
     home()
-    sleep(1000)
+    sleep(1000) // 等待返回动画完成
     console.log("已解锁")
-    sleep(1000)
 }
 
 function stop_app() {
-    console.info("结束钉钉进程") // shell('am force-stop ' + BUNDLE_ID_DD, true) 依赖于root权限
+    console.info("结束钉钉进程")
+    // shell('am force-stop ' + BUNDLE_ID_DD, true)
+    
+    // 已获取Root权限的同学用上面这一句就行
+    // 未获取Root权限的同学要根据自己的手机来修改调试一下
+    
     app.openAppSetting(BUNDLE_ID_DD)
     text(app.getAppName(BUNDLE_ID_DD)).waitFor()
-    let is_sure = textMatches("结束运行").clickable(true).findOne()
+    let is_sure = textMatches("结束运行").clickable(true).findOne() // 找到 "结束运行" 按钮，并点击
     if (is_sure.enabled()) {
         sleep(1000)
         is_sure.click()
         sleep(1000)
-        textMatches("确定").clickable(true).findOne().click()
+        textMatches("确定").clickable(true).findOne().click() // 找到 "确定" 按钮，并点击
         console.log(app.getAppName(BUNDLE_ID_DD) + "已被关闭")
         sleep(1000)
         home()
@@ -285,7 +290,7 @@ function do_clock_in() {
         return;
     }
     console.log("等待连接到考勤机...")
-    textContains("前台大门").waitFor()
+    textContains(NAME_OF_ATTENDANCE_MACHINE).waitFor()
     console.log("已连接")
     sleep(1000)
     click(BUTTON_DAKA_X,BUTTON_DAKA_Y)
@@ -312,7 +317,7 @@ function do_clock_in() {
 function do_clock_out() {
     console.info("下班打卡...")
     console.log("等待连接到考勤机...")
-    textContains("前台大门").waitFor()
+    textContains(NAME_OF_ATTENDANCE_MACHINE).waitFor()
     console.log("已连接")
     if (null != textMatches("下班打卡").clickable(true).findOne(1000)) {
         textMatches(/(.*下班打卡.*)/).findOnce().click()
@@ -379,6 +384,44 @@ function getCurrentDate(){
     var formattedDateString = year + '-' + month + '-' + date + '-' + weekday[week]
     return formattedDateString
 }
+
+/*
+ *                        _oo0oo_
+ *                       o8888888o
+ *                       88" . "88
+ *                       (| -_- |)
+ *                       0\  =  /0
+ *                     ___/`---'\___
+ *                   .' \\|     |// '.
+ *                  / \\|||  :  |||// \
+ *                 / _||||| -:- |||||- \
+ *                |   | \\\  - /// |   |
+ *                | \_|  ''\---/''  |_/ |
+ *                \  .-\__  '-'  ___/-. /
+ *              ___'. .'  /--.--\  `. .'___
+ *           ."" '<  `.___\_<|>_/___.' >' "".
+ *          | | :  `- \`.;`\ _ /`;.`/ - ` : | |
+ *          \  \ `_.   \_ __\ /__ _/   .-` /  /
+ *      =====`-.____`.___ \_____/___.-`___.-'=====
+ *                        `=---='
+ * 
+ * 
+ *      ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ * 
+ *            佛祖保佑       永不宕机     永无BUG
+ * 
+ *        佛曰:  
+ *                写字楼里写字间，写字间里程序员；  
+ *                程序人员写程序，又拿程序换酒钱。  
+ *                酒醒只在网上坐，酒醉还来网下眠；  
+ *                酒醉酒醒日复日，网上网下年复年。  
+ *                但愿老死电脑间，不愿鞠躬老板前；  
+ *                奔驰宝马贵者趣，公交自行程序员。  
+ *                别人笑我忒疯癫，我笑自己命太贱；  
+ *                不见满街漂亮妹，哪个归得程序员？
+ * 
+ *                希望阿里的老哥老姐给留一条生路！
+*/
 ```
 
 ## 更新日志
