@@ -5,8 +5,8 @@
  * @Description: DingDing-Automatic-Clock-in (tasker + AutoJs)
  */
 
-const ACCOUNT = "17666553306" // 账号
-const PASSWORD = "78910JQK" // 密码
+const ACCOUNT = "Enter your account here" // 账号
+const PASSWORD = "Enter your password here" // 密码
 const BUNDLE_ID = "com.alibaba.android.rimet"
 const LOWER_BOUND = 1 * 60 * 1000 // 最小随机等待时间：1min
 const UPPER_BOUND = 5 * 60 * 1000 // 最大随机等待时间：5min
