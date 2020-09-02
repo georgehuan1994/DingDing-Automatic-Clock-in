@@ -8,8 +8,15 @@
 const ACCOUNT = "Enter your account here" // 账号
 const PASSWORD = "Enter your password here" // 密码
 const BUNDLE_ID = "com.alibaba.android.rimet"
+const EMAILL_ADDRESS = "Enter your email address" // 邮箱地址
+
 const LOWER_BOUND = 1 * 60 * 1000 // 最小随机等待时间：1min
 const UPPER_BOUND = 5 * 60 * 1000 // 最大随机等待时间：5min
+
+const BUTTON_HOME_POS_X = 540 // Home键坐标x
+const BUTTON_HOME_POS_Y = 2278 // Home键坐标y
+
+const SCREEN_BRIGHTNESS = 20 // 执行时的屏幕亮度（0-255）
 
 var weekday = new Array(7);
 weekday[0] = "Sunday"
@@ -45,13 +52,13 @@ function printNotification(notification) {
     if (abstract == "定时打卡") {
         needWaiting = true
         do_main()
-        press(540, 2278, 1000) // Power()，模拟按下电源键，此函数依赖于root权限
+        press(BUTTON_HOME_POS_X, BUTTON_HOME_POS_Y, 1000) // 快捷手势：长按Home键锁屏。也可使用Power()函数，模拟按下电源键，此函数依赖于root权限
     }
     // 为避免重复触发，只监听小米推送服务的通知（com.netease.mail）
     if (bundleId == "com.xiaomi.xmsf" && text == "打卡") {
         needWaiting = false
         do_main()
-        press(540, 2278, 1000)
+        press(BUTTON_HOME_POS_X, BUTTON_HOME_POS_Y, 1000)
     }
 }
 
@@ -63,7 +70,7 @@ function do_main(){
     console.info("当前：" + getCurrentDate() + " " + getCurrentTime()) 
     console.log("开始执行主程序")
     device.setBrightnessMode(0) // 手动亮度模式
-    device.setBrightness(20) // 设置屏幕亮度20（0-255）
+    device.setBrightness(SCREEN_BRIGHTNESS)
     bright_screen()
     unlock_screen()
     stop_app()
@@ -284,7 +291,7 @@ function do_clock_out() {
 function send_email(){
     console.info("发送邮件...")
     app.sendEmail({
-        email: ["georgehuan1994@icloud.com"],
+        email: [EMAILL_ADDRESS],
         subject: "打卡成功",
         text: getCurrentDate() + " " + getCurrentTime()
     })
