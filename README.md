@@ -60,6 +60,7 @@ weekday[6] = "Saturday"
 var message = ""
 var needWaiting = true
 var currentDate = new Date()
+
 var bundleIdBanList = [
     "android", 
     "com.xiaomi.aiasst.service",
@@ -120,9 +121,6 @@ function do_main() {
     console.info("当前：" + getCurrentDate() + " " + getCurrentTime()) 
     console.log("开始执行主程序")
 
-    device.setBrightnessMode(0) // 手动亮度模式
-    device.setBrightness(SCREEN_BRIGHTNESS)
-    
     bright_screen()     // 唤醒屏幕
     unlock_screen()     // 解锁屏幕
     stop_app()          // 结束钉钉
@@ -144,7 +142,7 @@ function do_main() {
     console.log("主程序执行完毕")
 }
 
-function send_email(){
+function send_email() {
     console.info("发送邮件...")
     bright_screen() // 唤醒屏幕
     unlock_screen() // 解锁屏幕
@@ -160,7 +158,6 @@ function send_email(){
     }
     textContains("收件人").waitFor()
     id("send").findOne().click()
-    // click(BUTTON_SEND_EMAIL_X,BUTTON_SEND_EMAIL_Y)
     console.log("已发送")
     message = ""
     home()
@@ -170,6 +167,8 @@ function send_email(){
 
 function bright_screen() {
     console.info("唤醒设备")
+    device.setBrightnessMode(0) // 手动亮度模式
+    device.setBrightness(SCREEN_BRIGHTNESS)
     device.wakeUpIfNeeded() // 唤醒设备
     device.keepScreenOn()   // 保持亮屏
     console.log("已唤醒")
@@ -323,16 +322,11 @@ function do_clock_in() {
     textContains(NAME_OF_ATTENDANCE_MACHINE).waitFor()
     console.log("已连接")
     sleep(1000)
-    if (null != textMatches("上班打卡").clickable(true).findOne(1000)) {
-        textMatches(/(.*上班打卡.*)/).findOnce().click()
-    }
-    else {
-        click(BUTTON_DAKA_X,BUTTON_DAKA_Y)
-        sleep(50)
-        click(BUTTON_DAKA_X,BUTTON_DAKA_Y)
-        sleep(50)
-        click(BUTTON_DAKA_X,BUTTON_DAKA_Y)
-    }
+    click(BUTTON_DAKA_X,BUTTON_DAKA_Y)
+    sleep(50)
+    click(BUTTON_DAKA_X,BUTTON_DAKA_Y)
+    sleep(50)
+    click(BUTTON_DAKA_X,BUTTON_DAKA_Y)
     console.log("按下打卡按钮")
     sleep(1000)
     handle_late()
@@ -456,4 +450,5 @@ PC和手机连接到同一网络，使用 VSCode + Auto.js插件（在扩展中�
 
 ## 更新日志
 2020-09-04：将 "打卡" 与 "发送邮件" 分离成两个过程，打卡完成后，将钉钉返回的考勤结果作为邮件正文发送
+
 2020-09-02：钉钉工作台界面改版（新增考勤打卡的快捷入口）。无法通过 "考勤打卡" 相关属性获取控件，改为使用 "去打卡" 文本获取按钮。若找不到 "去打卡" 按钮，则直接点击 "考勤打卡" 的屏幕坐标
