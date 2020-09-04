@@ -46,9 +46,6 @@ const BUTTON_KAOQIN_Y = 1007    // 考勤打卡控件坐标y
 const BUTTON_DAKA_X = 540   // 打卡按钮坐标x
 const BUTTON_DAKA_Y = 1325  // 打卡按钮坐标y
 
-const BUTTON_SEND_EMAIL_X = 1014    // 邮件发送按钮坐标x
-const BUTTON_SEND_EMAIL_Y = 138     // 邮件发送按钮坐标y
-
 const SCREEN_BRIGHTNESS = 20    // 执行时的屏幕亮度（0-255）
 
 var weekday = new Array(7);
@@ -63,6 +60,19 @@ weekday[6] = "Saturday"
 var message = ""
 var needWaiting = true
 var currentDate = new Date()
+var bundleIdBanList = [
+    "android", 
+    "com.xiaomi.aiasst.service",
+    "com.xiaomi.simactivate.service", 
+    "com.android.mms",
+    "com.android.gallery",
+    "com.miui.gallery",
+    "com.miui.systemui",
+]
+
+var textBanList = [
+    "无活动的配置文件。",
+]
 
 // 检查无障碍权限启动
 auto.waitFor("fast")
@@ -78,27 +88,30 @@ function printNotification(notification) {
     var bundleId = notification.getPackageName()
     var abstract = notification.tickerText
     var text = notification.getText()
-
-    if (bundleId != "android") {
-        console.log(bundleId)
-        console.log(text)
-        console.log("---------------------------")
+    
+    // 通知筛选器
+    if (!filterNotification(bundleId, abstract, text)) {
+        return;
     }
     // 监听摘要为 "定时打卡" 的通知
     if (abstract == "定时打卡") {
         needWaiting = true
-        do_main()
-        press(BUTTON_HOME_POS_X, BUTTON_HOME_POS_Y, 1000) // 快捷手势：长按Home键锁屏。也可使用Power()函数，模拟按下电源键，此函数依赖于root权限
+        do_main()  
     }
     // 监听文本为 "打卡" 的通知，为避免重复触发，只监听厂商推送服务（com.xiaomi.xmsf）或邮箱应用（com.netease.mail）的通知
     if (bundleId == BUNDLE_ID_XMSF && text == "打卡") {
         needWaiting = false
         do_main()
-        press(BUTTON_HOME_POS_X, BUTTON_HOME_POS_Y, 1000)
+    }
+    // 监听钉钉返回的考勤结果
+    if (bundleId == BUNDLE_ID_DD && text.indexOf("考勤打卡") >= 0) {
+        message = text
+        console.warn(message)
+        send_email()
     }
 }
 
-function do_main(){
+function do_main() {
     console.show()              // 显示控制台
     sleep(100)                  // 等待控制台出现
     console.setSize(800,450)    // 调整控制台尺寸
@@ -126,13 +139,33 @@ function do_main(){
     else {
         do_clock_out()  // 下班打卡
     }
-    send_email()        // 发送邮件
+    lock_screen()       // 关闭屏幕
+    console.hide()      // 关闭控制台
+    console.log("主程序执行完毕")
+}
 
-    device.setBrightnessMode(1) // 自动亮度模式
-    device.cancelKeepingAwake() // 取消设备常亮
-    
-    console.info("主程序执行完毕，关闭屏幕")
-    console.hide() // 关闭控制台
+function send_email(){
+    console.info("发送邮件...")
+    bright_screen() // 唤醒屏幕
+    unlock_screen() // 解锁屏幕
+    app.sendEmail({
+        email: [EMAILL_ADDRESS],
+        subject: "考勤结果",
+        text: message
+    })
+    textContains("发送邮件").waitFor()
+    if (null != textMatches("网易邮箱大师").findOne(3000)) {
+        anniu_email = textMatches(/(.*网易邮箱大师.*)/).findOnce().parent()
+        anniu_email.click()
+    }
+    textContains("收件人").waitFor()
+    id("send").findOne().click()
+    // click(BUTTON_SEND_EMAIL_X,BUTTON_SEND_EMAIL_Y)
+    console.log("已发送")
+    message = ""
+    home()
+    sleep(1000)
+    lock_screen() // 关闭屏幕
 }
 
 function bright_screen() {
@@ -146,6 +179,7 @@ function bright_screen() {
         device.wakeUpIfNeeded()
         bright_screen()
     }
+    sleep(1000)
 }
 
 function unlock_screen() {
@@ -276,9 +310,10 @@ function in_kaoqin(){
 
 function do_clock_in() {
     console.info("上班打卡...")
+    if (null != textMatches("迟到").findOne(1000)) {
+    }
     if (null != textContains("已打卡").findOne(1000)) {
         console.log("已打卡")
-        message = "已打卡"
         toast("已打卡")
         home()
         sleep(1000)
@@ -288,11 +323,16 @@ function do_clock_in() {
     textContains(NAME_OF_ATTENDANCE_MACHINE).waitFor()
     console.log("已连接")
     sleep(1000)
-    click(BUTTON_DAKA_X,BUTTON_DAKA_Y)
-    sleep(50)
-    click(BUTTON_DAKA_X,BUTTON_DAKA_Y)
-    sleep(50)
-    click(BUTTON_DAKA_X,BUTTON_DAKA_Y)
+    if (null != textMatches("上班打卡").clickable(true).findOne(1000)) {
+        textMatches(/(.*上班打卡.*)/).findOnce().click()
+    }
+    else {
+        click(BUTTON_DAKA_X,BUTTON_DAKA_Y)
+        sleep(50)
+        click(BUTTON_DAKA_X,BUTTON_DAKA_Y)
+        sleep(50)
+        click(BUTTON_DAKA_X,BUTTON_DAKA_Y)
+    }
     console.log("按下打卡按钮")
     sleep(1000)
     handle_late()
@@ -302,7 +342,6 @@ function do_clock_in() {
     sleep(2000);
     if (null != textContains("上班打卡成功").findOne(3000)) {
         console.log("上班打卡成功")
-        message = "上班打卡成功"
         toast("上班打卡成功")
     }
     home()
@@ -321,7 +360,6 @@ function do_clock_out() {
     sleep(1000)
     if (null != textContains("早退打卡").clickable(true).findOne(1000)) {
         console.log("早退打卡")
-        message = "早退打卡"
         className("android.widget.Button").text("早退打卡").findOnce().parent().click()
     }
     if (null != textMatches("我知道了").clickable(true).findOne(1000)) {
@@ -330,31 +368,18 @@ function do_clock_out() {
     sleep(2000);
     if (null != textContains("下班打卡成功").findOne(3000)) {
         console.log("下班打卡成功")
-        message = "下班打卡成功" + message
         toast("下班打卡成功")
     }
     home()
     sleep(1000)
 }
 
-function send_email(){
-    console.info("发送邮件...")
-    app.sendEmail({
-        email: [EMAILL_ADDRESS],
-        subject: "打卡结果",
-        text: getCurrentDate() + " " + getCurrentTime() + " " + message
-    })
-    textContains("发送邮件").waitFor()
-    if (null != textMatches("网易邮箱大师").findOne(3000)) {
-        anniu_email = textMatches(/(.*网易邮箱大师.*)/).findOnce().parent()
-        anniu_email.click()
-    }
-    textContains("收件人").waitFor()
-    click(BUTTON_SEND_EMAIL_X,BUTTON_SEND_EMAIL_Y)
-    console.log("已发送")
-    message = ""
-    home()
-    sleep(1000)
+function lock_screen(){
+    console.log("关闭屏幕")
+    device.setBrightnessMode(1) // 自动亮度模式
+    device.cancelKeepingAwake() // 取消设备常亮
+    // Power() // 模拟按下电源键，此函数依赖于root权限
+    press(BUTTON_HOME_POS_X, BUTTON_HOME_POS_Y, 1000) // 快捷手势：长按Home键锁屏
 }
 
 function dateDigitToString(num){
@@ -378,6 +403,26 @@ function getCurrentDate(){
     var week = currentDate.getDay()
     var formattedDateString = year + '-' + month + '-' + date + '-' + weekday[week]
     return formattedDateString
+}
+
+function filterNotification(bundleId, abstract, text) {
+    var result1
+    var result2
+    bundleIdBanList.every(function(item) {
+        result1 = bundleId != item
+        return result1
+    });
+    textBanList.every(function(item) {
+        result2 = text != item
+        return result2
+    });
+    if (result1 && result2) {
+        console.log(bundleId)
+        console.log(abstract)
+        console.log(text)  
+        console.log("---------------------------")
+    }
+    return result1 && result2
 }
 
 ```
@@ -410,4 +455,5 @@ PC和手机连接到同一网络，使用 VSCode + Auto.js插件（在扩展中�
 回复标题为 "打卡" 的邮件，即可触发打卡进程
 
 ## 更新日志
+2020-09-04：将 "打卡" 与 "发送邮件" 分离成两个过程，打卡完成后，将钉钉返回的考勤结果作为邮件正文发送
 2020-09-02：钉钉工作台界面改版（新增考勤打卡的快捷入口）。无法通过 "考勤打卡" 相关属性获取控件，改为使用 "去打卡" 文本获取按钮。若找不到 "去打卡" 按钮，则直接点击 "考勤打卡" 的屏幕坐标
