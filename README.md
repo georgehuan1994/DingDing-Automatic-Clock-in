@@ -13,17 +13,15 @@
 3. 网易邮箱大师
 
 ## 原理
-在AutoJs脚本中监听本机通知，并在tasker中创建定时任务发出打卡通知，或在另一设备上发送消息到本机，即可触发脚本中的打卡进程，以实现定时打卡和远程打卡的功能。当然也可以通过发送应用间广播或其他推送的方式来实现
-
-因为部分操作仍要基于坐标，所以在使用前，需要对脚本做一些调整，来适配你的设备！
+在AutoJs脚本中监听本机通知，并在tasker中创建定时任务发出打卡通知，或在另一设备上发送消息到本机，即可触发脚本中的打卡进程，以实现定时打卡和远程打卡的功能。
 
 ## 脚本
 ```javascript
 /*
  * @Author: George Huan
  * @Date: 2020-08-03 09:30:30
- * @LastEditTime: 2020-09-02 15:30:48
- * @Description: DingDing-Automatic-Clock-in (tasker + AutoJs)
+ * @LastEditTime: 2020-09-05 14:14:27
+ * @Description: DingDing-Automatic-Clock-in (base on AutoJs)
  */
 
 const ACCOUNT = "账号"
@@ -34,8 +32,8 @@ const BUNDLE_ID_MAIL = "com.netease.mail"
 const EMAILL_ADDRESS = "收件邮箱地址"
 const NAME_OF_ATTENDANCE_MACHINE = "前台大门" // 考勤机名称片段
 
-const LOWER_BOUND = 0 * 60 * 1000 // 最小随机等待时间：1min
-const UPPER_BOUND = 0 * 60 * 1000 // 最大随机等待时间：5min
+const LOWER_BOUND = 1 * 60 * 1000 // 最小随机等待时间：1min
+const UPPER_BOUND = 5 * 60 * 1000 // 最大随机等待时间：5min
 
 const BUTTON_HOME_POS_X = 540   // Home键坐标x
 const BUTTON_HOME_POS_Y = 2278  // Home键坐标y
@@ -58,6 +56,7 @@ weekday[5] = "Friday"
 weekday[6] = "Saturday"
 
 var message = ""
+var lastMessage = ""
 var needWaiting = true
 var currentDate = new Date()
 
@@ -76,7 +75,10 @@ var textBanList = [
 ]
 
 // 检查无障碍权限启动
-auto.waitFor("fast")
+auto.waitFor("normal")
+
+// 自动放缩坐标以适配其他设备
+setScreenMetrics(1080, 2340)
 
 // 监听本机通知
 events.observeNotification()
@@ -94,25 +96,34 @@ function printNotification(notification) {
     if (!filterNotification(bundleId, abstract, text)) {
         return;
     }
-    // 监听摘要为 "定时打卡" 的通知
+    // 监听到摘要为 "定时打卡" 的通知后，执行doClock打卡进程
     if (abstract == "定时打卡") {
         needWaiting = true
-        do_main()  
+        doClock()
     }
-    // 监听文本为 "打卡" 的通知，为避免重复触发，只监听厂商推送服务（com.xiaomi.xmsf）或邮箱应用（com.netease.mail）的通知
+    // TODO：邮件收发和推送服务不太稳定，考虑换另一种方法
+    // 监听到文本为 "打卡" 的通知后，执行doClock打卡进程
+    // 为避免重复触发，只监听厂商推送服务（com.xiaomi.xmsf）或邮箱应用（com.netease.mail）的通知
     if (bundleId == BUNDLE_ID_XMSF && text == "打卡") {
         needWaiting = false
-        do_main()
+        doClock()
     }
-    // 监听钉钉返回的考勤结果
+    // 监听到文本为 "打卡结果" 的通知后，以邮件的形式发送最近一次的打卡结果
+    if (bundleId == BUNDLE_ID_XMSF && text == "打卡结果") {
+        message = lastMessage
+        console.warn(message)
+        sendEmail()
+    }
+    // 监听到钉钉返回的考勤结果后，以邮件的形式发送打卡结果
     if (bundleId == BUNDLE_ID_DD && text.indexOf("考勤打卡") >= 0) {
         message = text
+        lastMessage = text
         console.warn(message)
-        send_email()
+        sendEmail()
     }
 }
 
-function do_main() {
+function doClock() {
     console.show()              // 显示控制台
     sleep(100)                  // 等待控制台出现
     console.setSize(800,450)    // 调整控制台尺寸
@@ -121,31 +132,31 @@ function do_main() {
     console.info("当前：" + getCurrentDate() + " " + getCurrentTime()) 
     console.log("开始执行主程序")
 
-    bright_screen()     // 唤醒屏幕
-    unlock_screen()     // 解锁屏幕
-    stop_app()          // 结束钉钉
-    wait_a_minute()     // 随机等待
-    is_login()          // 自动登录
-    handle_updata()     // 处理更新
-    handle_late()       // 处理迟到
-    in_gongzuo()        // 进入工作台
-    in_kaoqin()         // 进入考勤打卡界面
+    brightScreen()      // 唤醒屏幕
+    unlockScreen()      // 解锁屏幕
+    stopApp()           // 结束钉钉
+    holdOn()            // 随机等待
+    signIn()            // 自动登录
+    handleUpdata()      // 处理更新
+    handleLate()        // 处理迟到
+    enterGongzuo()      // 进入工作台
+    enterKaoqin()       // 进入打卡界面
 
     if (currentDate.getHours() <= 12) {
-        do_clock_in()   // 上班打卡
+        clockIn()       // 上班打卡
     }
     else {
-        do_clock_out()  // 下班打卡
+        clockOut()      // 下班打卡
     }
-    lock_screen()       // 关闭屏幕
+    lockScreen()        // 关闭屏幕
     console.hide()      // 关闭控制台
     console.log("主程序执行完毕")
 }
 
-function send_email() {
+function sendEmail() {
     console.info("发送邮件...")
-    bright_screen() // 唤醒屏幕
-    unlock_screen() // 解锁屏幕
+    brightScreen()      // 唤醒屏幕
+    unlockScreen()      // 解锁屏幕
     app.sendEmail({
         email: [EMAILL_ADDRESS],
         subject: "考勤结果",
@@ -162,10 +173,10 @@ function send_email() {
     message = ""
     home()
     sleep(1000)
-    lock_screen() // 关闭屏幕
+    lockScreen() // 关闭屏幕
 }
 
-function bright_screen() {
+function brightScreen() {
     console.info("唤醒设备")
     device.setBrightnessMode(0) // 手动亮度模式
     device.setBrightness(SCREEN_BRIGHTNESS)
@@ -176,12 +187,12 @@ function bright_screen() {
     if (!device.isScreenOn()) {
         console.warn("设备未唤醒")
         device.wakeUpIfNeeded()
-        bright_screen()
+        brightScreen()
     }
     sleep(1000)
 }
 
-function unlock_screen() {
+function unlockScreen() {
     console.info("解锁屏幕")
     gesture(320,[540,device.height * 0.9],[540,device.height * 0.1]) // 上滑解锁
     sleep(1000) // 等待解锁动画完成
@@ -190,7 +201,7 @@ function unlock_screen() {
     console.log("已解锁")
 }
 
-function stop_app() {
+function stopApp() {
     console.info("结束钉钉进程")
     // shell('am force-stop ' + BUNDLE_ID_DD, true)
     
@@ -216,7 +227,7 @@ function stop_app() {
     sleep(1000)
 }
 
-function wait_a_minute(){
+function holdOn(){
     if (!needWaiting) {
         return;
     }
@@ -226,11 +237,11 @@ function wait_a_minute(){
     sleep(randomTime)
 }
 
-function is_login() {
+function signIn() {
     app.launchPackage(BUNDLE_ID_DD);
     console.info("正在启动" + app.getAppName(BUNDLE_ID_DD) + "...")
     sleep(10000)
-    handle_updata() // 为保证线程安全，不使用多线程监听，主动调用方法处理更新弹窗
+    handleUpdata() // 处理更新弹窗
     if (id("et_pwd_login").exists()) {
         console.log("账号未登录")
         var account = id("et_phone_input").findOne()
@@ -241,19 +252,21 @@ function is_login() {
         password.setText(PASSWORD)
         console.log("输入密码")
         id("btn_next").findOne().click()
-        console.log("登录成功")
-    } else {
-        if (className("android.widget.RelativeLayout").exists()) {
+        console.log("正在登陆")
+    }
+    else {
+        if (id("menu_tel").exists()) {
             console.log("账号已登录，当前位于活动页面")
             sleep(1000)
-        } else {
+        } 
+        else {
             console.warn("未检测到活动页面，重试")
-            is_login()
+            signIn()
         }
     }
 }
 
-function handle_updata(){
+function handleUpdata(){
     if (null != textMatches("暂不更新").clickable(true).findOne(3000)) {
         console.info("发现更新弹窗")
         anniu_dontUpdate = textMatches(/(.*暂不更新.*)/).findOnce()
@@ -263,20 +276,20 @@ function handle_updata(){
     }
 }
 
-function handle_late(){
+function handleLate(){
     if (null != descMatches("迟到打卡").clickable(true).findOne(1000)) {
-        console.log("在desc中找到迟到打卡")
+        console.log("descMatches：迟到打卡")
         desc("迟到打卡").findOne().click()
     }
     if (null != textMatches("迟到打卡").clickable(true).findOne(1000)) {
-        console.log("在text中找到迟到打卡")
+        console.log("textMatches：迟到打卡")
         text("迟到打卡").findOne().click()
     }
 }
 
-function in_gongzuo(){
+function enterGongzuo(){
     if (null != descMatches("工作台").clickable(true).findOne(3000)) {
-        toast("在desc中找到了工作台按钮")
+        toast("descMatches：工作台")
         anniu_gongzou = descMatches(/(.*工作台.*)/).findOnce()
     }
     sleep(500)
@@ -289,9 +302,9 @@ function in_gongzuo(){
     }
 }
 
-function in_kaoqin(){
+function enterKaoqin(){
     if (null != textMatches("去打卡").clickable(true).findOne(3000)) {
-        console.log("在text中找到去打卡按钮")
+        console.log("textMatches：去打卡")
         anniu_kaoqin = textMatches(/(.*去打卡.*)/).clickable(true).findOnce() 
         sleep(1000)
         anniu_kaoqin.click()
@@ -307,10 +320,8 @@ function in_kaoqin(){
     }
 }
 
-function do_clock_in() {
+function clockIn() {
     console.info("上班打卡...")
-    if (null != textMatches("迟到").findOne(1000)) {
-    }
     if (null != textContains("已打卡").findOne(1000)) {
         console.log("已打卡")
         toast("已打卡")
@@ -329,7 +340,7 @@ function do_clock_in() {
     click(BUTTON_DAKA_X,BUTTON_DAKA_Y)
     console.log("按下打卡按钮")
     sleep(1000)
-    handle_late()
+    handleLate()
     if (null != textMatches("我知道了").clickable(true).findOne(1000)) {
         text("我知道了").findOne().click()
     }
@@ -342,7 +353,7 @@ function do_clock_in() {
     sleep(1000)
 }
 
-function do_clock_out() {
+function clockOut() {
     console.info("下班打卡...")
     console.log("等待连接到考勤机...")
     textContains(NAME_OF_ATTENDANCE_MACHINE).waitFor()
@@ -368,7 +379,7 @@ function do_clock_out() {
     sleep(1000)
 }
 
-function lock_screen(){
+function lockScreen(){
     console.log("关闭屏幕")
     device.setBrightnessMode(1) // 自动亮度模式
     device.cancelKeepingAwake() // 取消设备常亮
@@ -442,11 +453,10 @@ PC和手机连接到同一网络，使用 VSCode + Auto.js插件（在扩展中�
 ### 邮箱应用
 使用原生的邮箱容易受限，导致邮件发送失败，所以找一个你喜欢的邮箱应用并添加一个邮箱地址
 
-### 调试
-根据脚本中的注释，针对自己的设备来修改并调试脚本
-
 ### 远程打卡
 回复标题为 "打卡" 的邮件，即可触发打卡进程
+
+恢复标题为 "打卡结果" 的邮件，即可查询最新一次打卡结果
 
 ## 更新日志
 2020-09-04：将 "打卡" 与 "发送邮件" 分离成两个过程，打卡完成后，将钉钉返回的考勤结果作为邮件正文发送
