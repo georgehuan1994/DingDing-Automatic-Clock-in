@@ -20,29 +20,32 @@
 /*
  * @Author: George Huan
  * @Date: 2020-08-03 09:30:30
- * @LastEditTime: 2020-09-05 14:14:27
+ * @LastEditTime: 2020-09-05 17:39:56
  * @Description: DingDing-Automatic-Clock-in (base on AutoJs)
  */
 
-const ACCOUNT = "账号"
-const PASSWORD = "密码"
+const ACCOUNT = "钉钉账号"
+const PASSWORD = "钉钉密码"
+const EMAILL_ADDRESS = "用于接收打卡结果的邮箱地址"
+
 const BUNDLE_ID_DD = "com.alibaba.android.rimet"
 const BUNDLE_ID_XMSF = "com.xiaomi.xmsf"
 const BUNDLE_ID_MAIL = "com.netease.mail"
-const EMAILL_ADDRESS = "收件邮箱地址"
-const NAME_OF_ATTENDANCE_MACHINE = "前台大门" // 考勤机名称片段
 
-const LOWER_BOUND = 1 * 60 * 1000 // 最小随机等待时间：1min
-const UPPER_BOUND = 5 * 60 * 1000 // 最大随机等待时间：5min
+const NAME_OF_EMAILL_APP = "网易邮箱大师"
+const NAME_OF_ATTENDANCE_MACHINE = "前台大门" // 考勤机名称
 
-const BUTTON_HOME_POS_X = 540   // Home键坐标x
-const BUTTON_HOME_POS_Y = 2278  // Home键坐标y
+const LOWER_BOUND = 1 * 60 * 1000       // 最小随机等待时间：1min
+const UPPER_BOUND = 5 * 60 * 1000       // 最大随机等待时间：5min
+
+const BUTTON_HOME_POS_X = 540       // Home键坐标x
+const BUTTON_HOME_POS_Y = 2278      // Home键坐标y
 
 const BUTTON_KAOQIN_X = 130     // 考勤打卡控件坐标x
 const BUTTON_KAOQIN_Y = 1007    // 考勤打卡控件坐标y
 
-const BUTTON_DAKA_X = 540   // 打卡按钮坐标x
-const BUTTON_DAKA_Y = 1325  // 打卡按钮坐标y
+const BUTTON_DAKA_X = 540       // 打卡按钮坐标x
+const BUTTON_DAKA_Y = 1325      // 打卡按钮坐标y
 
 const SCREEN_BRIGHTNESS = 20    // 执行时的屏幕亮度（0-255）
 
@@ -74,63 +77,69 @@ var textBanList = [
     "无活动的配置文件。",
 ]
 
-// 检查无障碍权限启动
-auto.waitFor("normal")
+auto.waitFor("normal")          // 检查无障碍权限启动
+setScreenMetrics(1080, 2340)    // 自动放缩坐标以适配其他设备
 
-// 自动放缩坐标以适配其他设备
-setScreenMetrics(1080, 2340)
-
-// 监听本机通知
-events.observeNotification()
+events.observeNotification()    // 监听本机通知
 events.onNotification(function(notification) {
     printNotification(notification)
 });
 toast("监听中，请在日志中查看记录的通知及其内容")
 
+
+/**
+ * @description 处理通知
+ * @param {type} 
+ * @return {type} 
+ */
 function printNotification(notification) {
-    var bundleId = notification.getPackageName()
-    var abstract = notification.tickerText
-    var text = notification.getText()
+    var bundleId = notification.getPackageName()    // 获取通知包名
+    var abstract = notification.tickerText          // 获取通知摘要
+    var text = notification.getText()               // 获取通知文本
     
-    // 通知筛选器
-    if (!filterNotification(bundleId, abstract, text)) {
+    if (!filterNotification(bundleId, abstract, text)) { // 筛选通知
         return;
     }
-    // 监听到摘要为 "定时打卡" 的通知后，执行doClock打卡进程
-    if (abstract == "定时打卡") {
+    if (abstract == "定时打卡") { // 监听到摘要为 "定时打卡" 的通知后，执行doClock打卡进程
         needWaiting = true
         doClock()
+        return;
     }
-    // TODO：邮件收发和推送服务不太稳定，考虑换另一种方法
-    // 监听到文本为 "打卡" 的通知后，执行doClock打卡进程
-    // 为避免重复触发，只监听厂商推送服务（com.xiaomi.xmsf）或邮箱应用（com.netease.mail）的通知
-    if (bundleId == BUNDLE_ID_XMSF && text == "打卡") {
+    if (bundleId == BUNDLE_ID_XMSF && text == "打卡") { // 监听到文本为 "打卡" 的通知后，执行doClock打卡进程
         needWaiting = false
         doClock()
+        return;
     }
-    // 监听到文本为 "打卡结果" 的通知后，以邮件的形式发送最近一次的打卡结果
-    if (bundleId == BUNDLE_ID_XMSF && text == "打卡结果") {
+    if (bundleId == BUNDLE_ID_XMSF && text == "打卡结果") { // 监听到文本为 "打卡结果" 的通知后，以邮件的形式发送最近一次的打卡结果
         message = lastMessage
         console.warn(message)
         sendEmail()
+        return;
     }
-    // 监听到钉钉返回的考勤结果后，以邮件的形式发送打卡结果
-    if (bundleId == BUNDLE_ID_DD && text.indexOf("考勤打卡") >= 0) {
+    if (bundleId == BUNDLE_ID_DD && text.indexOf("考勤打卡") >= 0) { // 监听到钉钉返回的考勤结果后，以邮件的形式发送打卡结果
         message = text
         lastMessage = text
         console.warn(message)
         sendEmail()
+        return;
     }
 }
 
+
+/**
+ * @description 打卡主程序 
+ * @param {type} 
+ * @return {type} 
+ */
 function doClock() {
+    
     console.show()              // 显示控制台
     sleep(100)                  // 等待控制台出现
     console.setSize(800,450)    // 调整控制台尺寸
 
     currentDate = new Date()
     console.info("当前：" + getCurrentDate() + " " + getCurrentTime()) 
-    console.log("开始执行主程序")
+    console.log("开始执行打卡主程序")
 
     brightScreen()      // 唤醒屏幕
     unlockScreen()      // 解锁屏幕
@@ -150,39 +159,66 @@ function doClock() {
     }
     lockScreen()        // 关闭屏幕
     console.hide()      // 关闭控制台
-    console.log("主程序执行完毕")
 }
 
+
+/**
+ * @description 发邮件主程序
+ * @param {type} 
+ * @return {type} 
+ */
 function sendEmail() {
+
     console.info("发送邮件...")
+
     brightScreen()      // 唤醒屏幕
     unlockScreen()      // 解锁屏幕
+    
     app.sendEmail({
         email: [EMAILL_ADDRESS],
         subject: "考勤结果",
         text: message
     })
-    textContains("发送邮件").waitFor()
-    if (null != textMatches("网易邮箱大师").findOne(3000)) {
-        anniu_email = textMatches(/(.*网易邮箱大师.*)/).findOnce().parent()
-        anniu_email.click()
+    
+    waitForActivity("com.android.internal.app.ChooserActivity")
+    if (null != textMatches(NAME_OF_EMAILL_APP).findOne(3000)) {
+        btn_email = textMatches(NAME_OF_EMAILL_APP).findOnce().parent()
+        btn_email.click()
     }
-    textContains("收件人").waitFor()
+    else {
+        console.log("没有找到" + NAME_OF_EMAILL_APP)
+        lockScreen()
+        return;
+    }
+
+    waitForActivity("com.netease.mobimail.activity.MailComposeActivity")
     id("send").findOne().click()
+
     console.log("已发送")
     message = ""
+    
     home()
     sleep(1000)
     lockScreen() // 关闭屏幕
 }
 
+
+/**
+ * @description 唤醒设备
+ * @param {type} 
+ * @return {type} 
+ */
 function brightScreen() {
+
     console.info("唤醒设备")
+    
     device.setBrightnessMode(0) // 手动亮度模式
     device.setBrightness(SCREEN_BRIGHTNESS)
     device.wakeUpIfNeeded() // 唤醒设备
     device.keepScreenOn()   // 保持亮屏
+
     console.log("已唤醒")
+    
     sleep(1000) // 等待屏幕亮起
     if (!device.isScreenOn()) {
         console.warn("设备未唤醒")
@@ -192,30 +228,43 @@ function brightScreen() {
     sleep(1000)
 }
 
+
+/**
+ * @description 解锁屏幕
+ * @param {type} 
+ * @return {type} 
+ */
 function unlockScreen() {
+
     console.info("解锁屏幕")
+    
     gesture(320,[540,device.height * 0.9],[540,device.height * 0.1]) // 上滑解锁
     sleep(1000) // 等待解锁动画完成
     home()
     sleep(1000) // 等待返回动画完成
+    
     console.log("已解锁")
 }
 
+
+/**
+ * @description 结束钉钉进程
+ * @param {type} 
+ * @return {type} 
+ */
 function stopApp() {
+
     console.info("结束钉钉进程")
-    // shell('am force-stop ' + BUNDLE_ID_DD, true)
     
-    // 已获取Root权限的同学用上面这一句就行
-    // 未获取Root权限的同学要根据自己的手机来修改调试一下
-    
+    // shell('am force-stop ' + BUNDLE_ID_DD, true) // 已获取Root权限的用这一句
     app.openAppSetting(BUNDLE_ID_DD)
-    text(app.getAppName(BUNDLE_ID_DD)).waitFor()
-    let is_sure = textMatches("结束运行").clickable(true).findOne() // 找到 "结束运行" 按钮，并点击
-    if (is_sure.enabled()) {
-        sleep(1000)
-        is_sure.click()
-        sleep(1000)
-        textMatches("确定").clickable(true).findOne().click() // 找到 "确定" 按钮，并点击
+    let btn_finish = textMatches(/(.*结束.*)|(.*停止.*)|(.*运行.*)/).clickable(true).findOne() // 找到 "结束运行" 按钮，并点击
+    if (btn_finish.enabled()) {
+        btn_finish.click()
+
+        btn_sure = textMatches("确定").clickable(true).findOne()
+        btn_sure.click() // 找到 "确定" 按钮，并点击
+
         console.log(app.getAppName(BUNDLE_ID_DD) + "已被关闭")
         sleep(1000)
         home()
@@ -227,6 +276,12 @@ function stopApp() {
     sleep(1000)
 }
 
+
+/**
+ * @description 随机等待
+ * @param {type} 
+ * @return {type} 
+ */
 function holdOn(){
     if (!needWaiting) {
         return;
@@ -237,21 +292,33 @@ function holdOn(){
     sleep(randomTime)
 }
 
+
+/**
+ * @description 启动并登陆钉钉
+ * @param {type} 
+ * @return {type} 
+ */
 function signIn() {
-    app.launchPackage(BUNDLE_ID_DD);
+
+    app.launchPackage(BUNDLE_ID_DD)
     console.info("正在启动" + app.getAppName(BUNDLE_ID_DD) + "...")
-    sleep(10000)
-    handleUpdata() // 处理更新弹窗
+    
+    sleep(10000)    // 等待钉钉启动
+    handleUpdata()  // 处理更新弹窗
+
     if (id("et_pwd_login").exists()) {
         console.log("账号未登录")
+
         var account = id("et_phone_input").findOne()
         account.setText(ACCOUNT)
         console.log("输入账号")
+
         var password = id("et_pwd_login").findOne()
-        sleep(1000)
         password.setText(PASSWORD)
         console.log("输入密码")
-        id("btn_next").findOne().click()
+        
+        var btn_login = id("btn_next").findOne()
+        btn_login.click()
         console.log("正在登陆")
     }
     else {
@@ -266,7 +333,14 @@ function signIn() {
     }
 }
 
+
+/**
+ * @description 处理钉钉更新弹窗
+ * @param {type} 
+ * @return {type} 
+ */
 function handleUpdata(){
+
     if (null != textMatches("暂不更新").clickable(true).findOne(3000)) {
         console.info("发现更新弹窗")
         anniu_dontUpdate = textMatches(/(.*暂不更新.*)/).findOnce()
@@ -276,7 +350,14 @@ function handleUpdata(){
     }
 }
 
+
+/**
+ * @description 处理迟到打卡
+ * @param {type} 
+ * @return {type} 
+ */
 function handleLate(){
+
     if (null != descMatches("迟到打卡").clickable(true).findOne(1000)) {
         console.log("descMatches：迟到打卡")
         desc("迟到打卡").findOne().click()
@@ -287,41 +368,64 @@ function handleLate(){
     }
 }
 
+
+/**
+ * @description 进入工作台
+ * @param {type} 
+ * @return {type} 
+ */
 function enterGongzuo(){
+    
     if (null != descMatches("工作台").clickable(true).findOne(3000)) {
         toast("descMatches：工作台")
         anniu_gongzou = descMatches(/(.*工作台.*)/).findOnce()
+        anniu_gongzou.click()
     }
-    sleep(500)
-    anniu_gongzou.click()
+
     console.info("正在进入工作台...")
     sleep(5000)
+    
     if (id("menu_work_info").exists()) {
         console.log("已进入工作台页面")
         sleep(1000)
     }
 }
 
+
+/**
+ * @description 进入打卡界面
+ * @param {type} 
+ * @return {type} 
+ */
 function enterKaoqin(){
     if (null != textMatches("去打卡").clickable(true).findOne(3000)) {
         console.log("textMatches：去打卡")
         anniu_kaoqin = textMatches(/(.*去打卡.*)/).clickable(true).findOnce() 
-        sleep(1000)
         anniu_kaoqin.click()
     }
     else {
         click(BUTTON_KAOQIN_X,BUTTON_KAOQIN_Y)
     }
+
     console.info("正在进入考勤打卡页面...")
     sleep(6000)
+    
     if (null != textMatches("申请").clickable(true).findOne(3000)) {
         console.log("已进入考勤打卡页面")
         sleep(1000)
     }
 }
 
+
+/**
+ * @description 上班打卡 
+ * @param {type} 
+ * @return {type} 
+ */
 function clockIn() {
+
     console.info("上班打卡...")
+    
     if (null != textContains("已打卡").findOne(1000)) {
         console.log("已打卡")
         toast("已打卡")
@@ -329,10 +433,13 @@ function clockIn() {
         sleep(1000)
         return;
     }
+
     console.log("等待连接到考勤机...")
     textContains(NAME_OF_ATTENDANCE_MACHINE).waitFor()
+    
     console.log("已连接")
     sleep(1000)
+
     click(BUTTON_DAKA_X,BUTTON_DAKA_Y)
     sleep(50)
     click(BUTTON_DAKA_X,BUTTON_DAKA_Y)
@@ -340,52 +447,87 @@ function clockIn() {
     click(BUTTON_DAKA_X,BUTTON_DAKA_Y)
     console.log("按下打卡按钮")
     sleep(1000)
-    handleLate()
+
+    handleLate() // 迟到打卡
+    
     if (null != textMatches("我知道了").clickable(true).findOne(1000)) {
         text("我知道了").findOne().click()
     }
+
     sleep(2000);
+    
     if (null != textContains("上班打卡成功").findOne(3000)) {
         console.log("上班打卡成功")
         toast("上班打卡成功")
     }
+
     home()
     sleep(1000)
 }
 
+
+/**
+ * @description 下班打卡 
+ * @param {type} 
+ * @return {type} 
+ */
 function clockOut() {
+
     console.info("下班打卡...")
+
     console.log("等待连接到考勤机...")
     textContains(NAME_OF_ATTENDANCE_MACHINE).waitFor()
+    
     console.log("已连接")
+    sleep(1000)
+
     if (null != textMatches("下班打卡").clickable(true).findOne(1000)) {
         textMatches(/(.*下班打卡.*)/).findOnce().click()
+        console.log("按下打卡按钮")
+        sleep(1000)
     }
-    console.log("按下打卡按钮")
-    sleep(1000)
+
     if (null != textContains("早退打卡").clickable(true).findOne(1000)) {
-        console.log("早退打卡")
         className("android.widget.Button").text("早退打卡").findOnce().parent().click()
+        console.log("早退打卡")
     }
+    
     if (null != textMatches("我知道了").clickable(true).findOne(1000)) {
         text("我知道了").findOne().click()
     }
+
     sleep(2000);
+    
     if (null != textContains("下班打卡成功").findOne(3000)) {
         console.log("下班打卡成功")
         toast("下班打卡成功")
     }
+
     home()
     sleep(1000)
 }
 
+
+/**
+ * @description 锁屏
+ * @param {type} 
+ * @return {type} 
+ */
 function lockScreen(){
+
     console.log("关闭屏幕")
+
     device.setBrightnessMode(1) // 自动亮度模式
     device.cancelKeepingAwake() // 取消设备常亮
+    
     // Power() // 模拟按下电源键，此函数依赖于root权限
-    press(BUTTON_HOME_POS_X, BUTTON_HOME_POS_Y, 1000) // 快捷手势：长按Home键锁屏
+    press(BUTTON_HOME_POS_X, BUTTON_HOME_POS_Y, 1000) // 小米的快捷手势：长按Home键锁屏
 }
+
+
+// =========================================
+//  功能函数
+// =========================================
 
 function dateDigitToString(num){
     return num < 10 ? '0' + num : num
@@ -429,7 +571,6 @@ function filterNotification(bundleId, abstract, text) {
     }
     return result1 && result2
 }
-
 ```
 
 ## 使用方法
@@ -449,9 +590,6 @@ PC和手机连接到同一网络，使用 VSCode + Auto.js插件（在扩展中�
 2. 添加两个配置文件，使用日期和时间作为条件，分别在上班前和下班后触发
 
 或者[直接下载任务和配置文件](https://github.com/georgehuan1994/DingDing-Automatic-Clock-in/tree/master/Tasker配置 "下载配置")，导入到Tasker中使用
-
-### 邮箱应用
-使用原生的邮箱容易受限，导致邮件发送失败，所以找一个你喜欢的邮箱应用并添加一个邮箱地址
 
 ### 远程打卡
 回复标题为 "打卡" 的邮件，即可触发打卡进程
