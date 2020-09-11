@@ -20,7 +20,7 @@
 /*
  * @Author: George Huan
  * @Date: 2020-08-03 09:30:30
- * @LastEditTime: 2020-09-05 17:39:56
+ * @LastEditTime: 2020-09-11 15:38:13
  * @Description: DingDing-Automatic-Clock-in (base on AutoJs)
  */
 
@@ -59,7 +59,6 @@ weekday[5] = "Friday"
 weekday[6] = "Saturday"
 
 var message = ""
-var lastMessage = ""
 var needWaiting = true
 var currentDate = new Date()
 
@@ -78,6 +77,11 @@ var textBanList = [
 ]
 
 auto.waitFor("normal")          // 检查无障碍权限启动
+
+console.setGlobalLogConfig({
+    file: "/sdcard/脚本/Archive/" + getCurrentDate() + "-log.txt"
+});
+
 setScreenMetrics(1080, 2340)    // 自动放缩坐标以适配其他设备
 
 events.observeNotification()    // 监听本机通知
@@ -105,20 +109,20 @@ function printNotification(notification) {
         doClock()
         return;
     }
-    if (bundleId == BUNDLE_ID_XMSF && text == "打卡") { // 监听到文本为 "打卡" 的通知后，执行doClock打卡进程
+    if ((bundleId == BUNDLE_ID_MAIL || bundleId == BUNDLE_ID_XMSF) && text == "打卡") { // 监听到文本为 "打卡" 的通知后，执行doClock打卡进程
         needWaiting = false
         doClock()
         return;
     }
-    if (bundleId == BUNDLE_ID_XMSF && text == "打卡结果") { // 监听到文本为 "打卡结果" 的通知后，以邮件的形式发送最近一次的打卡结果
-        message = lastMessage
+    if ((bundleId == BUNDLE_ID_MAIL || bundleId == BUNDLE_ID_XMSF) && text == "打卡结果") { // 监听到文本为 "打卡结果" 的通知后，以邮件的形式发送最近一次的打卡结果
+        message = getStorageData("dingding", "clockResult")
         console.warn(message)
         sendEmail()
         return;
     }
     if (bundleId == BUNDLE_ID_DD && text.indexOf("考勤打卡") >= 0) { // 监听到钉钉返回的考勤结果后，以邮件的形式发送打卡结果
         message = text
-        lastMessage = text
+        setStorageData("dingding", "clockResult", text)
         console.warn(message)
         sendEmail()
         return;
@@ -169,11 +173,12 @@ function doClock() {
  */
 function sendEmail() {
 
-    console.info("发送邮件...")
+    console.info("开始执行邮件发送主程序")
 
     brightScreen()      // 唤醒屏幕
     unlockScreen()      // 解锁屏幕
-    
+
+    console.info("正在发送邮件")
     app.sendEmail({
         email: [EMAILL_ADDRESS],
         subject: "考勤结果",
@@ -475,6 +480,21 @@ function clockOut() {
 
     console.info("下班打卡...")
 
+    if (null != textContains("更新打卡").findOne(1000)) {
+        console.log("已打卡")
+        toast("已打卡")
+        if (null != textContains("早退").findOne(1000)) {
+            console.log("早退")
+            toast("早退")
+        }
+        else {
+            home()
+            sleep(1000)
+            return;
+        }
+        console.log("更新打卡记录")
+    }
+
     console.log("等待连接到考勤机...")
     textContains(NAME_OF_ATTENDANCE_MACHINE).waitFor()
     
@@ -571,6 +591,29 @@ function filterNotification(bundleId, abstract, text) {
     }
     return result1 && result2
 }
+
+//保存本地数据
+function setStorageData(name, key, value) {
+    const storage = storages.create(name)  //创建storage对象
+    storage.put(key, value)
+}
+
+//读取本地数据
+function getStorageData(name, key) {
+    const storage = storages.create(name)  //创建storage对象
+    if (storage.contains(key)) {
+        return storage.get(key, "")
+    }
+    //默认返回undefined
+}
+
+//删除本地数据
+function delStorageData(name, key) {
+    const storage = storages.create(name)  //创建storage对象
+    if (storage.contains(key)) {
+        storage.remove(key)
+    }
+}
 ```
 
 ## 使用方法
@@ -597,6 +640,14 @@ PC和手机连接到同一网络，使用 VSCode + Auto.js插件（在扩展中�
 恢复标题为 "打卡结果" 的邮件，即可查询最新一次打卡结果
 
 ## 更新日志
+2020-09-11：
+
+1. 将上次考勤结果储存在本地
+
+2. 将运行日志储存在本地 /sdcard/脚本/Archive/
+
+3. 修复在下班极速打卡之后，重复打卡的问题
+
 2020-09-04：将 "打卡" 与 "发送邮件" 分离成两个过程，打卡完成后，将钉钉返回的考勤结果作为邮件正文发送
 
 2020-09-02：钉钉工作台界面改版（新增考勤打卡的快捷入口）。无法通过 "考勤打卡" 相关属性获取控件，改为使用 "去打卡" 文本获取按钮。若找不到 "去打卡" 按钮，则直接点击 "考勤打卡" 的屏幕坐标
