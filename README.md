@@ -13,14 +13,14 @@
 3. 网易邮箱大师
 
 ## 原理
-在AutoJs脚本中监听本机通知，并在tasker中创建定时任务发出打卡通知，或在另一设备上发送消息到本机，即可触发脚本中的打卡进程，以实现定时打卡和远程打卡的功能。
+在AutoJs脚本中监听本机通知，并在tasker中创建定时任务发出打卡通知，或在另一设备上发送消息到本机，即可触发脚本中的打卡进程，实现定时打卡和远程打卡的功能。
 
 ## 脚本
 ```javascript
 /*
  * @Author: George Huan
  * @Date: 2020-08-03 09:30:30
- * @LastEditTime: 2020-09-11 15:38:13
+ * @LastEditTime: 2020-09-24 09:30:10
  * @Description: DingDing-Automatic-Clock-in (base on AutoJs)
  */
 
@@ -70,6 +70,8 @@ var bundleIdBanList = [
     "com.android.gallery",
     "com.miui.gallery",
     "com.miui.systemui",
+    "com.android.providers.downloads",
+    "com.android.vending",
 ]
 
 var textBanList = [
@@ -152,6 +154,7 @@ function doClock() {
     signIn()            // 自动登录
     handleUpdata()      // 处理更新
     handleLate()        // 处理迟到
+    
     enterGongzuo()      // 进入工作台
     enterKaoqin()       // 进入打卡界面
 
@@ -348,8 +351,8 @@ function handleUpdata(){
 
     if (null != textMatches("暂不更新").clickable(true).findOne(3000)) {
         console.info("发现更新弹窗")
-        anniu_dontUpdate = textMatches(/(.*暂不更新.*)/).findOnce()
-        anniu_dontUpdate.click()
+        btn_dontUpdate = textMatches(/(.*暂不更新.*)/).findOnce()
+        btn_dontUpdate.click()
         console.log("暂不更新")
         sleep(1000)
     }
@@ -374,6 +377,7 @@ function handleLate(){
 }
 
 
+
 /**
  * @description 进入工作台
  * @param {type} 
@@ -383,8 +387,8 @@ function enterGongzuo(){
     
     if (null != descMatches("工作台").clickable(true).findOne(3000)) {
         toast("descMatches：工作台")
-        anniu_gongzou = descMatches(/(.*工作台.*)/).findOnce()
-        anniu_gongzou.click()
+        btn_gongzou = descMatches(/(.*工作台.*)/).findOnce()
+        btn_gongzou.click()
     }
 
     console.info("正在进入工作台...")
@@ -405,11 +409,11 @@ function enterGongzuo(){
 function enterKaoqin(){
     if (null != textMatches("去打卡").clickable(true).findOne(3000)) {
         console.log("textMatches：去打卡")
-        anniu_kaoqin = textMatches(/(.*去打卡.*)/).clickable(true).findOnce() 
-        anniu_kaoqin.click()
+        btn_kaoqin = textMatches(/(.*去打卡.*)/).clickable(true).findOnce() 
+        btn_kaoqin.click()
     }
     else {
-        click(BUTTON_KAOQIN_X,BUTTON_KAOQIN_Y)
+        attendKaoqin()
     }
 
     console.info("正在进入考勤打卡页面...")
@@ -419,6 +423,21 @@ function enterKaoqin(){
         console.log("已进入考勤打卡页面")
         sleep(1000)
     }
+}
+
+
+/**
+ * @description 直接拉起考勤打卡界面（URL Scheme）
+ * @param {type} 
+ * @return {type} 
+ */
+function attendKaoqin(){
+    var a = app.intent({
+        action: "VIEW",
+        data: "dingtalk://dingtalkclient/page/link?url=https://attend.dingtalk.com/attend/index.html"
+      });
+      app.startActivity(a);
+      sleep(5000)
 }
 
 
@@ -609,7 +628,7 @@ function getStorageData(name, key) {
 
 //删除本地数据
 function delStorageData(name, key) {
-    const storage = storages.create(name)  //创建storage对象
+    const storage = storages.create(name);  //创建storage对象
     if (storage.contains(key)) {
         storage.remove(key)
     }
@@ -640,6 +659,32 @@ PC和手机连接到同一网络，使用 VSCode + Auto.js插件（在扩展中�
 恢复标题为 "打卡结果" 的邮件，即可查询最新一次打卡结果
 
 ## 更新日志
+2020-09-24:
+
+若无法进入考勤打卡界面时，则使用intent直接拉起考勤打卡界面。
+
+获取完整URL的方式：
+```
+1. 在PC端找到 “智能工作助理” 这个联系人
+2. 发送消息 “打卡” ，点击 “立即打卡” ，获得一个二维码。这个二维码就是拉起考勤打卡界面的 URL Scheme ，用自带的相机或其他应用扫描即可获得完整的URL
+```
+
+```javascript
+/**
+ * @description 直接拉起考勤打卡界面（URL Scheme）
+ * @param {type} 
+ * @return {type} 
+ */
+function attendKaoqin(){
+    var a = app.intent({
+        action: "VIEW",
+        data: "dingtalk://dingtalkclient/page/link?url=https://attend.dingtalk.com/attend/index.html"
+      });
+      app.startActivity(a);
+      sleep(5000)
+}
+```
+
 2020-09-11：
 
 1. 将上次考勤结果储存在本地
