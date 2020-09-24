@@ -428,7 +428,7 @@ function enterKaoqin(){
 function attendKaoqin(){
     var a = app.intent({
         action: "VIEW",
-        data: "dingtalk://dingtalkclient/page/link?url=https://attend.dingtalk.com/attend/index.html?corpId=dingb5e60c24873965c6f5bf40eda33b7ba0"
+        data: "dingtalk://dingtalkclient/page/link?url=https://attend.dingtalk.com/attend/index.html"
       });
       app.startActivity(a);
       sleep(5000)
