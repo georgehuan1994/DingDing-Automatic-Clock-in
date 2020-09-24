@@ -20,7 +20,7 @@
 /*
  * @Author: George Huan
  * @Date: 2020-08-03 09:30:30
- * @LastEditTime: 2020-09-24 09:30:10
+ * @LastEditTime: 2020-09-24 10:16:38
  * @Description: DingDing-Automatic-Clock-in (base on AutoJs)
  */
 
@@ -40,9 +40,6 @@ const UPPER_BOUND = 5 * 60 * 1000       // 最大随机等待时间：5min
 
 const BUTTON_HOME_POS_X = 540       // Home键坐标x
 const BUTTON_HOME_POS_Y = 2278      // Home键坐标y
-
-const BUTTON_KAOQIN_X = 130     // 考勤打卡控件坐标x
-const BUTTON_KAOQIN_Y = 1007    // 考勤打卡控件坐标y
 
 const BUTTON_DAKA_X = 540       // 打卡按钮坐标x
 const BUTTON_DAKA_Y = 1325      // 打卡按钮坐标y
@@ -90,7 +87,7 @@ events.observeNotification()    // 监听本机通知
 events.onNotification(function(notification) {
     printNotification(notification)
 });
-toast("监听中，请在日志中查看记录的通知及其内容")
+toastLog("监听中，请在日志中查看记录的通知及其内容")
 
 
 /**
@@ -154,7 +151,6 @@ function doClock() {
     signIn()            // 自动登录
     handleUpdata()      // 处理更新
     handleLate()        // 处理迟到
-    
     enterGongzuo()      // 进入工作台
     enterKaoqin()       // 进入打卡界面
 
@@ -295,8 +291,7 @@ function holdOn(){
         return;
     }
     var randomTime = random(LOWER_BOUND, UPPER_BOUND)
-    log(Math.floor(randomTime / 1000) + "秒后启动" + app.getAppName(BUNDLE_ID_DD) + "...")
-    toast(Math.floor(randomTime / 1000) + "秒后启动" + app.getAppName(BUNDLE_ID_DD) + "...")
+    toastLog(Math.floor(randomTime / 1000) + "秒后启动" + app.getAppName(BUNDLE_ID_DD) + "...")
     sleep(randomTime)
 }
 
@@ -377,7 +372,6 @@ function handleLate(){
 }
 
 
-
 /**
  * @description 进入工作台
  * @param {type} 
@@ -386,7 +380,7 @@ function handleLate(){
 function enterGongzuo(){
     
     if (null != descMatches("工作台").clickable(true).findOne(3000)) {
-        toast("descMatches：工作台")
+        toastLog("descMatches：工作台")
         btn_gongzou = descMatches(/(.*工作台.*)/).findOnce()
         btn_gongzou.click()
     }
@@ -434,7 +428,7 @@ function enterKaoqin(){
 function attendKaoqin(){
     var a = app.intent({
         action: "VIEW",
-        data: "dingtalk://dingtalkclient/page/link?url=https://attend.dingtalk.com/attend/index.html"
+        data: "dingtalk://dingtalkclient/page/link?url=https://attend.dingtalk.com/attend/index.html?corpId=dingb5e60c24873965c6f5bf40eda33b7ba0"
       });
       app.startActivity(a);
       sleep(5000)
@@ -451,8 +445,7 @@ function clockIn() {
     console.info("上班打卡...")
     
     if (null != textContains("已打卡").findOne(1000)) {
-        console.log("已打卡")
-        toast("已打卡")
+        toastLog("已打卡")
         home()
         sleep(1000)
         return;
@@ -481,8 +474,7 @@ function clockIn() {
     sleep(2000);
     
     if (null != textContains("上班打卡成功").findOne(3000)) {
-        console.log("上班打卡成功")
-        toast("上班打卡成功")
+        toastLog("上班打卡成功")
     }
 
     home()
@@ -500,11 +492,9 @@ function clockOut() {
     console.info("下班打卡...")
 
     if (null != textContains("更新打卡").findOne(1000)) {
-        console.log("已打卡")
-        toast("已打卡")
+        toastLog("已打卡")
         if (null != textContains("早退").findOne(1000)) {
-            console.log("早退")
-            toast("早退")
+            toastLog("早退")
         }
         else {
             home()
@@ -538,8 +528,7 @@ function clockOut() {
     sleep(2000);
     
     if (null != textContains("下班打卡成功").findOne(3000)) {
-        console.log("下班打卡成功")
-        toast("下班打卡成功")
+        toastLog("下班打卡成功")
     }
 
     home()
@@ -603,10 +592,10 @@ function filterNotification(bundleId, abstract, text) {
         return result2
     });
     if (result1 && result2) {
-        console.log(bundleId)
-        console.log(abstract)
-        console.log(text)  
-        console.log("---------------------------")
+        console.verbose(bundleId)
+        console.verbose(abstract)
+        console.verbose(text)  
+        console.verbose("---------------------------")
     }
     return result1 && result2
 }
@@ -619,7 +608,7 @@ function setStorageData(name, key, value) {
 
 //读取本地数据
 function getStorageData(name, key) {
-    const storage = storages.create(name)  //创建storage对象
+    const storage = storages.create(name)
     if (storage.contains(key)) {
         return storage.get(key, "")
     }
@@ -628,7 +617,7 @@ function getStorageData(name, key) {
 
 //删除本地数据
 function delStorageData(name, key) {
-    const storage = storages.create(name);  //创建storage对象
+    const storage = storages.create(name)
     if (storage.contains(key)) {
         storage.remove(key)
     }
@@ -666,7 +655,8 @@ PC和手机连接到同一网络，使用 VSCode + Auto.js插件（在扩展中�
 获取完整URL的方式：
 ```
 1. 在PC端找到 “智能工作助理” 这个联系人
-2. 发送消息 “打卡” ，点击 “立即打卡” ，获得一个二维码。这个二维码就是拉起考勤打卡界面的 URL Scheme ，用自带的相机或其他应用扫描即可获得完整的URL
+2. 发送消息 “打卡” ，点击 “立即打卡” ，获得一个二维码。这个二维码就是拉起考勤打卡界面的 URL Scheme ，用自带的相机或其他应用扫描，并在浏览器中打开，即可获得完整URL Scheme
+3. 完整的URL很长，其实只需要将CorpId=***拼接上去就可以了，后面的都不需要
 ```
 
 ```javascript
