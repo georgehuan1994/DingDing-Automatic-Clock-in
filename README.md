@@ -1,4 +1,7 @@
 # DingDing-Automatic-Clock-in
+
+<img width="270" height="585" src="https://github.com/georgehuan1994/DingDing-Automatic-Clock-in/blob/master/图片/Screenshot_2020-10-29-19-29-35-361_org.autojs.autojs.jpg"/>  <img width="270" height="585" src="https://github.com/georgehuan1994/DingDing-Automatic-Clock-in/blob/master/图片/Screenshot_20201029193358.png"/>
+
 ## 简介
 钉钉自动打卡、远程打卡脚本，基于AutoJs，免Root
 
@@ -638,7 +641,7 @@ AutoJs是安卓平台上的JavaScript自动化工具 https://github.com/hyb1996/
 PC和手机连接到同一网络，使用 VSCode + Auto.js插件（在扩展中心搜索 "hyb1996"） 可方便的调试并将脚本保存到手机上
 
 ### Tasker
-![](https://github.com/georgehuan1994/DingDing-Automatic-Clock-in/blob/master/图片/截图_004.jpg)
+<img width="270" height="585" src="https://github.com/georgehuan1994/DingDing-Automatic-Clock-in/blob/master/图片/截图_004.jpg"/>
 
 1. 添加一个 "通知" 操作任务，通知标题修改为 "定时打卡"，通知文字随意，通知优先级设为 1
 2. 添加两个配置文件，使用日期和时间作为条件，分别在上班前和下班后触发
@@ -651,13 +654,13 @@ PC和手机连接到同一网络，使用 VSCode + Auto.js插件（在扩展中�
 回复标题为 "打卡结果" 的邮件，即可查询最新一次打卡结果
 
 ## 更新日志
-2020-10-27：
+### 2020-10-27
 
 修复：当钉钉的通知文本为null时，indexOf()方法无法正常执行
 
-2020-09-24:
+### 2020-09-24
 
-若无法进入考勤打卡界面，则使用intent直接拉起考勤打卡界面。
+优化：若无法进入考勤打卡界面，则使用intent直接拉起考勤打卡界面。
 
 获取完整URL的方式：
 ```
@@ -682,7 +685,7 @@ function attendKaoqin(){
 }
 ```
 
-2020-09-11：
+### 2020-09-11
 
 1. 将上次考勤结果储存在本地
 
@@ -690,6 +693,10 @@ function attendKaoqin(){
 
 3. 修复在下班极速打卡之后，重复打卡的问题
 
-2020-09-04：将 "打卡" 与 "发送邮件" 分离成两个过程，打卡完成后，将钉钉返回的考勤结果作为邮件正文发送
+### 2020-09-04
 
-2020-09-02：钉钉工作台界面改版（新增考勤打卡的快捷入口）。无法通过 "考勤打卡" 相关属性获取控件，改为使用 "去打卡" 文本获取按钮。若找不到 "去打卡" 按钮，则直接点击 "考勤打卡" 的屏幕坐标
+将 "打卡" 与 "发送邮件" 分离成两个过程，打卡完成后，将钉钉返回的考勤结果作为邮件正文发送
+
+### 2020-09-02
+
+钉钉工作台界面改版（新增考勤打卡的快捷入口）。无法通过 "考勤打卡" 相关属性获取控件，改为使用 "去打卡" 文本获取按钮。若找不到 "去打卡" 按钮，则直接点击 "考勤打卡" 的屏幕坐标
