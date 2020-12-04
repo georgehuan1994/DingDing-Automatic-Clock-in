@@ -685,10 +685,16 @@ PC和手机连接到同一网络，使用 VSCode + Auto.js插件（在扩展中�
 
 回复标题为 "打卡结果" 的邮件，即可查询最新一次打卡结果
 
+### 注意事项
+1. 此脚本会自动适配不同分辨率的设备，但AutoJs对平板的兼容性不佳，不推荐在平板设备上使用
+2. 首次启动AutoJs时，需要为其开启无障碍权限
+3. 为保证AutoJs、Tasker进程不被系统清理，可调整它们的电池管理策略、加入管理应用的白名单，为其开启前台服务、添加应用锁
+4. 虽然脚本可执行完整的打卡步骤，但仍推荐开启钉钉的极速打卡功能，在钉钉启动时即可完成打卡，应把后续的步骤视为极速打卡失败后的保险措施
+
 ## 更新日志
 ### 2020-12-04
 
-优化：令打卡操作在子线程中执行，钉钉返回打卡结果后中断子线程，减少无效操作
+优化：打卡过程在子线程中执行，钉钉返回打卡结果后，直接中断子线程，减少无效操作
 
 ### 2020-10-27
 
@@ -698,12 +704,14 @@ PC和手机连接到同一网络，使用 VSCode + Auto.js插件（在扩展中�
 
 优化：若无法进入考勤打卡界面，则使用intent直接拉起考勤打卡界面
 
-获取完整URL的方式：
-```
+获取URL的方式：
+
 1. 在PC端找到 “智能工作助理” 联系人
-2. 发送消息 “打卡” ，点击 “立即打卡” ，将弹出一个二维码。这个二维码就是拉起考勤打卡界面的 URL Scheme ，用自带的相机或其他应用扫描，并在浏览器中打开，即可获得完整URL Scheme
-3. 完整的URL很长，但只需要将CorpId=***拼接上去就可以了，后面的都不需要
-```
+2. 发送消息 “打卡” ，点击 “立即打卡” 
+3. 弹出一个二维码。此二维码就是拉起考勤打卡界面的 URL Scheme ，用自带的相机或其他应用扫描，并在浏览器中打开，即可获得完整URL Scheme
+4. 无需使用完整URL，将`/CorpId=***` 拼接到 `dingtalk://dingtalkclient/page/link?url=https://attend.dingtalk.com/attend/index.html` 之后即可
+
+仅使用 `dingtalk://dingtalkclient/page/link?url=https://attend.dingtalk.com/attend/index.html`，也可以拉起旧版打卡界面，钉钉会自动获取CorpId，并跳转到新版打卡界面
 
 ```javascript
 /**
@@ -714,7 +722,7 @@ PC和手机连接到同一网络，使用 VSCode + Auto.js插件（在扩展中�
 function attendKaoqin(){
     var a = app.intent({
         action: "VIEW",
-        data: "dingtalk://dingtalkclient/page/link?url=https://attend.dingtalk.com/attend/index.html"
+        data: "dingtalk://dingtalkclient/page/link?url=https://attend.dingtalk.com/attend/index.html" // 在后面加上 /CorpId=************
       });
       app.startActivity(a);
       sleep(5000)
