@@ -618,16 +618,18 @@ function getCurrentDate(){
 
 // 通知过滤器
 function filterNotification(bundleId, abstract, text) {
+    
     if (!NOTIFICATIONS_FILTER) {
+        console.verbose(bundleId)
+        console.verbose(abstract)
+        console.verbose(text)  
+        console.verbose("---------------------------")
         return true
     }
-    
-    var result
     bundleIdAllowList.every(function(item) {
-        result = bundleId == item
+        var result = bundleId == item
         return result
     });
-
     if (result) {
         console.verbose(bundleId)
         console.verbose(abstract)
