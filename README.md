@@ -23,8 +23,8 @@
 /*
  * @Author: George Huan
  * @Date: 2020-08-03 09:30:30
- * @LastEditTime: 2020-09-24 10:16:38
- * @Description: DingDing-Automatic-Clock-in (base on AutoJs)
+ * @LastEditTime: 2020-12-04 11:44:38
+ * @Description: DingDing-Automatic-Clock-in (Run on AutoJs)
  */
 
 const ACCOUNT = "钉钉账号"
@@ -34,20 +34,30 @@ const EMAILL_ADDRESS = "用于接收打卡结果的邮箱地址"
 const BUNDLE_ID_DD = "com.alibaba.android.rimet"
 const BUNDLE_ID_XMSF = "com.xiaomi.xmsf"
 const BUNDLE_ID_MAIL = "com.netease.mail"
+const BUNDLE_ID_TASKER = "net.dinglisch.android.taskerm"
 
 const NAME_OF_EMAILL_APP = "网易邮箱大师"
 const NAME_OF_ATTENDANCE_MACHINE = "前台大门" // 考勤机名称
 
-const LOWER_BOUND = 1 * 60 * 1000       // 最小随机等待时间：1min
-const UPPER_BOUND = 5 * 60 * 1000       // 最大随机等待时间：5min
+const LOWER_BOUND = 1 * 60 * 1000 // 最小等待时间：1min
+const UPPER_BOUND = 5 * 60 * 1000 // 最大等待时间：5min
 
-const BUTTON_HOME_POS_X = 540       // Home键坐标x
-const BUTTON_HOME_POS_Y = 2278      // Home键坐标y
+// Home键坐标y，用于快捷手势：长按Home键锁屏
+const BUTTON_HOME_POS_X = 540
+const BUTTON_HOME_POS_Y = 2278
 
-const BUTTON_DAKA_X = 540       // 打卡按钮坐标x
-const BUTTON_DAKA_Y = 1325      // 打卡按钮坐标y
+// 打卡按钮坐标，因上班打卡按钮有可能获取不到，故使用打卡按钮坐标作为保险操作
+const BUTTON_DAKA_X = 540    
+const BUTTON_DAKA_Y = 1325
 
-const SCREEN_BRIGHTNESS = 20    // 执行时的屏幕亮度（0-255）
+// 执行时的屏幕亮度（0-255）
+const SCREEN_BRIGHTNESS = 20    
+
+// 是否过滤通知
+const NOTIFICATIONS_FILTER = false; 
+
+// BundleId过滤列表
+var bundleIdAllowList = [BUNDLE_ID_DD,BUNDLE_ID_XMSF,BUNDLE_ID_MAIL,BUNDLE_ID_TASKER, ]
 
 var weekday = new Array(7);
 weekday[0] = "Sunday"
@@ -62,35 +72,30 @@ var message = ""
 var needWaiting = true
 var currentDate = new Date()
 
-var bundleIdBanList = [
-    "android", 
-    "com.xiaomi.aiasst.service",
-    "com.xiaomi.simactivate.service", 
-    "com.android.mms",
-    "com.android.gallery",
-    "com.miui.gallery",
-    "com.miui.systemui",
-    "com.android.providers.downloads",
-    "com.android.vending",
-]
 
-var textBanList = [
-    "无活动的配置文件。",
-]
+// ===================== 主线程：监听并处理通知 ======================
 
-auto.waitFor("normal")          // 检查无障碍权限启动
+// 检查无障碍权限启动
+auto.waitFor("normal")          
 
+// 创建运行日志
 console.setGlobalLogConfig({
     file: "/sdcard/脚本/Archive/" + getCurrentDate() + "-log.txt"
 });
 
-setScreenMetrics(1080, 2340)    // 自动放缩坐标以适配其他设备
+// 自动放缩坐标以适配其他设备
+setScreenMetrics(1080, 2340)    
 
-events.observeNotification()    // 监听本机通知
+// 监听本机通知
+events.observeNotification()    
 events.onNotification(function(notification) {
-    printNotification(notification)
+    notificationHandler(notification)
 });
+
 toastLog("监听中，请在日志中查看记录的通知及其内容")
+
+// ===================== 主线程：监听并处理通知 =======================
+
 
 
 /**
@@ -98,37 +103,54 @@ toastLog("监听中，请在日志中查看记录的通知及其内容")
  * @param {type} 
  * @return {type} 
  */
-function printNotification(notification) {
+function notificationHandler(notification) {
+    
     var bundleId = notification.getPackageName()    // 获取通知包名
     var abstract = notification.tickerText          // 获取通知摘要
     var text = notification.getText()               // 获取通知文本
-    
-    if (!filterNotification(bundleId, abstract, text)) { // 筛选通知
+
+    // 筛选通知
+    if (!filterNotification(bundleId, abstract, text)) { 
         return;
     }
-    if (abstract == "定时打卡") { // 监听到摘要为 "定时打卡" 的通知后，执行doClock打卡进程
+
+    // 监听摘要为 "定时打卡" 的通知
+    if (abstract == "定时打卡") { 
         needWaiting = true
-        doClock()
+        threads.start(function(){
+            doClock()
+        })
         return;
     }
-    if ((bundleId == BUNDLE_ID_MAIL || bundleId == BUNDLE_ID_XMSF) && text == "打卡") { // 监听到文本为 "打卡" 的通知后，执行doClock打卡进程
+    
+    // 监听文本为 "打卡" 的通知
+    if ((bundleId == BUNDLE_ID_MAIL || bundleId == BUNDLE_ID_XMSF) && text == "打卡") { 
         needWaiting = false
-        doClock()
+        threads.start(function(){
+            doClock()
+        })
         return;
     }
-    if ((bundleId == BUNDLE_ID_MAIL || bundleId == BUNDLE_ID_XMSF) && text == "打卡结果") { // 监听到文本为 "打卡结果" 的通知后，以邮件的形式发送最近一次的打卡结果
+    
+    // 监听文本为 "打卡结果" 的通知
+    if ((bundleId == BUNDLE_ID_MAIL || bundleId == BUNDLE_ID_XMSF) && text == "打卡结果") { 
+        threads.shutDownAll()
         message = getStorageData("dingding", "clockResult")
         console.warn(message)
         sendEmail()
         return;
     }
+
     if (text == null) {
         return;
     }
-    if (bundleId == BUNDLE_ID_DD && text.indexOf("考勤打卡") >= 0) { // 监听到钉钉返回的考勤结果后，以邮件的形式发送打卡结果
+    
+    // 监听钉钉返回的考勤结果
+    if (bundleId == BUNDLE_ID_DD && text.indexOf("考勤打卡") >= 0) { 
+        threads.shutDownAll()
         message = text
-        setStorageData("dingding", "clockResult", text)
         console.warn(message)
+        setStorageData("dingding", "clockResult", text)
         sendEmail()
         return;
     }
@@ -463,21 +485,31 @@ function clockIn() {
     console.log("已连接")
     sleep(1000)
 
+    if (null != textMatches("上班打卡").findOne(1000)) {
+        // textMatches(/(.*上班打卡.*)/).findOnce().parent().parent().click()
+        // textMatches(/(.*上班打卡.*)/).findOnce().parent().click()
+        textMatches(/(.*上班打卡.*)/).findOnce().click()
+        console.log("textMatches：上班打卡")
+        sleep(1000)
+    }
+
+    if (null != descMatches("上班打卡").findOne(1000)) {
+        // descMatches(/(.*上班打卡.*)/).findOnce().parent().parent().click()
+        // descMatches(/(.*上班打卡.*)/).findOnce().parent().click()
+        descMatches(/(.*上班打卡.*)/).findOnce().click()
+        console.log("descMatches：上班打卡")
+        sleep(1000)
+    }
+
     click(BUTTON_DAKA_X,BUTTON_DAKA_Y)
-    sleep(50)
+    sleep(200)
     click(BUTTON_DAKA_X,BUTTON_DAKA_Y)
-    sleep(50)
+    sleep(200)
     click(BUTTON_DAKA_X,BUTTON_DAKA_Y)
     console.log("按下打卡按钮")
     sleep(1000)
 
     handleLate() // 迟到打卡
-    
-    if (null != textMatches("我知道了").clickable(true).findOne(1000)) {
-        text("我知道了").findOne().click()
-    }
-
-    sleep(2000);
     
     if (null != textContains("上班打卡成功").findOne(3000)) {
         toastLog("上班打卡成功")
@@ -559,9 +591,7 @@ function lockScreen(){
 }
 
 
-// =========================================
-//  功能函数
-// =========================================
+// ===================== 功能函数 =======================
 
 function dateDigitToString(num){
     return num < 10 ? '0' + num : num
@@ -586,48 +616,50 @@ function getCurrentDate(){
     return formattedDateString
 }
 
+// 通知过滤器
 function filterNotification(bundleId, abstract, text) {
-    var result1
-    var result2
-    bundleIdBanList.every(function(item) {
-        result1 = bundleId != item
-        return result1
+    if (!NOTIFICATIONS_FILTER) {
+        return true
+    }
+    
+    var result
+    bundleIdAllowList.every(function(item) {
+        result = bundleId == item
+        return result
     });
-    textBanList.every(function(item) {
-        result2 = text != item
-        return result2
-    });
-    if (result1 && result2) {
+
+    if (result) {
         console.verbose(bundleId)
         console.verbose(abstract)
         console.verbose(text)  
         console.verbose("---------------------------")
     }
-    return result1 && result2
+    return result
 }
 
-//保存本地数据
+// 保存本地数据
 function setStorageData(name, key, value) {
-    const storage = storages.create(name)  //创建storage对象
+    const storage = storages.create(name)  // 创建storage对象
     storage.put(key, value)
 }
 
-//读取本地数据
+// 读取本地数据
 function getStorageData(name, key) {
     const storage = storages.create(name)
     if (storage.contains(key)) {
         return storage.get(key, "")
     }
-    //默认返回undefined
+    // 默认返回undefined
 }
 
-//删除本地数据
+// 删除本地数据
 function delStorageData(name, key) {
     const storage = storages.create(name)
     if (storage.contains(key)) {
         storage.remove(key)
     }
 }
+// ===================== 功能函数 =======================
 ```
 
 ## 使用方法
@@ -654,13 +686,17 @@ PC和手机连接到同一网络，使用 VSCode + Auto.js插件（在扩展中�
 回复标题为 "打卡结果" 的邮件，即可查询最新一次打卡结果
 
 ## 更新日志
+### 2020-12-04
+
+优化：令打卡操作在子线程中执行，钉钉返回打卡结果后中断子线程，减少无效操作
+
 ### 2020-10-27
 
 修复：当钉钉的通知文本为null时，indexOf()方法无法正常执行
 
 ### 2020-09-24
 
-优化：若无法进入考勤打卡界面，则使用intent直接拉起考勤打卡界面。
+优化：若无法进入考勤打卡界面，则使用intent直接拉起考勤打卡界面
 
 获取完整URL的方式：
 ```
