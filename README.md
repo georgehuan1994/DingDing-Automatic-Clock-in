@@ -6,17 +6,17 @@
 钉钉自动打卡、远程打卡脚本，基于AutoJs，免Root
 
 ## 功能
-1. 定时自动打卡
-2. 远程指令打卡
-3. 发送打卡结果
+- 定时自动打卡
+- 远程指令打卡
+- 发送打卡结果
 
 ## 工具
-1. AutoJs
-2. Tasker
-3. 网易邮箱大师
+- AutoJs
+- Tasker
+- 网易邮箱大师
 
 ## 原理
-在AutoJs脚本中监听本机通知，并在tasker中创建定时任务发出打卡通知，或在另一设备上发送消息到本机，即可触发脚本中的打卡流程，实现定时打卡和远程打卡。
+在AutoJs脚本中监听本机通知，并在Tasker中创建定时任务发出打卡通知，或在另一设备上发送消息到本机，即可触发脚本中的打卡流程，实现定时打卡和远程打卡。
 
 ## 脚本
 ```javascript
@@ -559,10 +559,6 @@ function clockOut() {
         console.log("早退打卡")
     }
     
-    if (null != textMatches("我知道了").clickable(true).findOne(1000)) {
-        text("我知道了").findOne().click()
-    }
-
     sleep(2000);
     
     if (null != textContains("下班打卡成功").findOne(3000)) {
@@ -678,9 +674,10 @@ PC和手机连接到同一网络，使用 VSCode + Auto.js插件（在扩展中�
 <img width="270" height="585" src="https://github.com/georgehuan1994/DingDing-Automatic-Clock-in/blob/master/图片/截图_004.jpg"/>
 
 1. 添加一个 "通知" 操作任务，通知标题修改为 "定时打卡"，通知文字随意，通知优先级设为 1
+
 2. 添加两个配置文件，使用日期和时间作为条件，分别在上班前和下班后触发
 
-或者[直接下载任务和配置文件](https://github.com/georgehuan1994/DingDing-Automatic-Clock-in/tree/master/Tasker配置 "下载配置")，导入到Tasker中使用
+或者[下载任务和配置文件](https://github.com/georgehuan1994/DingDing-Automatic-Clock-in/tree/master/Tasker配置 "下载配置")，导入到Tasker中使用
 
 ### 远程打卡
 回复标题为 "打卡" 的邮件，即可触发打卡进程
@@ -689,8 +686,11 @@ PC和手机连接到同一网络，使用 VSCode + Auto.js插件（在扩展中�
 
 ### 注意事项
 1. 此脚本会自动适配不同分辨率的设备，但AutoJs对平板的兼容性不佳，不推荐在平板设备上使用
+
 2. 首次启动AutoJs时，需要为其开启无障碍权限
+
 3. 为保证AutoJs、Tasker进程不被系统清理，可调整它们的电池管理策略、加入管理应用的白名单，为其开启前台服务、添加应用锁
+
 4. 虽然脚本可执行完整的打卡步骤，但仍推荐开启钉钉的极速打卡功能，在钉钉启动时即可完成打卡，应把后续的步骤视为极速打卡失败后的保险措施
 
 ## 更新日志
@@ -709,18 +709,16 @@ PC和手机连接到同一网络，使用 VSCode + Auto.js插件（在扩展中�
 获取URL的方式：
 
 1. 在PC端找到 “智能工作助理” 联系人
+
 2. 发送消息 “打卡” ，点击 “立即打卡” 
+
 3. 弹出一个二维码。此二维码就是拉起考勤打卡界面的 URL Scheme ，用自带的相机或其他应用扫描，并在浏览器中打开，即可获得完整URL Scheme
+
 4. 无需使用完整URL，将`/CorpId=***` 拼接到 `dingtalk://dingtalkclient/page/link?url=https://attend.dingtalk.com/attend/index.html` 之后即可
 
 仅使用 `dingtalk://dingtalkclient/page/link?url=https://attend.dingtalk.com/attend/index.html`，也可以拉起旧版打卡界面，钉钉会自动获取CorpId，并跳转到新版打卡界面
 
 ```javascript
-/**
- * @description 直接拉起考勤打卡界面（URL Scheme）
- * @param {type} 
- * @return {type} 
- */
 function attendKaoqin(){
     var a = app.intent({
         action: "VIEW",
@@ -733,11 +731,11 @@ function attendKaoqin(){
 
 ### 2020-09-11
 
-1. 将上次考勤结果储存在本地
+- 将上次考勤结果储存在本地
 
-2. 将运行日志储存在本地 /sdcard/脚本/Archive/
+- 将运行日志储存在本地 /sdcard/脚本/Archive/
 
-3. 修复在下班极速打卡之后，重复打卡的问题
+- 修复在下班极速打卡之后，重复打卡的问题
 
 ### 2020-09-04
 
