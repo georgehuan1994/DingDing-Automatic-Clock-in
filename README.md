@@ -100,8 +100,6 @@ toastLog("监听中，请在日志中查看记录的通知及其内容")
 
 /**
  * @description 处理通知
- * @param {type} 
- * @return {type} 
  */
 function notificationHandler(notification) {
     
@@ -159,8 +157,6 @@ function notificationHandler(notification) {
 
 /**
  * @description 打卡主程序 
- * @param {type} 
- * @return {type} 
  */
 function doClock() {
     
@@ -169,7 +165,7 @@ function doClock() {
     console.setSize(800,450)    // 调整控制台尺寸
 
     currentDate = new Date()
-    console.info("当前：" + getCurrentDate() + " " + getCurrentTime()) 
+    console.info("当前：" + getCurrentDate() + " " + getCurrentTime())
     console.log("开始执行打卡主程序")
 
     brightScreen()      // 唤醒屏幕
@@ -195,15 +191,13 @@ function doClock() {
 
 /**
  * @description 发邮件主程序
- * @param {type} 
- * @return {type} 
  */
 function sendEmail() {
 
     console.info("开始执行邮件发送主程序")
 
-    brightScreen()      // 唤醒屏幕
-    unlockScreen()      // 解锁屏幕
+    brightScreen()  // 唤醒屏幕
+    unlockScreen()  // 解锁屏幕
 
     console.info("正在发送邮件")
     app.sendEmail({
@@ -231,14 +225,12 @@ function sendEmail() {
     
     home()
     sleep(1000)
-    lockScreen() // 关闭屏幕
+    lockScreen()    // 关闭屏幕
 }
 
 
 /**
  * @description 唤醒设备
- * @param {type} 
- * @return {type} 
  */
 function brightScreen() {
 
@@ -263,8 +255,6 @@ function brightScreen() {
 
 /**
  * @description 解锁屏幕
- * @param {type} 
- * @return {type} 
  */
 function unlockScreen() {
 
@@ -281,14 +271,15 @@ function unlockScreen() {
 
 /**
  * @description 结束钉钉进程
- * @param {type} 
- * @return {type} 
  */
 function stopApp() {
 
     console.info("结束钉钉进程")
-    
-    // shell('am force-stop ' + BUNDLE_ID_DD, true) // 已获取Root权限的用这一句
+
+    // Root
+    // shell('am force-stop ' + BUNDLE_ID_DD, true) 
+
+    // No Root
     app.openAppSetting(BUNDLE_ID_DD)
     let btn_finish = textMatches(/(.*结束.*)|(.*停止.*)|(.*运行.*)/).clickable(true).findOne() // 找到 "结束运行" 按钮，并点击
     if (btn_finish.enabled()) {
@@ -311,13 +302,13 @@ function stopApp() {
 
 /**
  * @description 随机等待
- * @param {type} 
- * @return {type} 
  */
 function holdOn(){
+
     if (!needWaiting) {
         return;
     }
+
     var randomTime = random(LOWER_BOUND, UPPER_BOUND)
     toastLog(Math.floor(randomTime / 1000) + "秒后启动" + app.getAppName(BUNDLE_ID_DD) + "...")
     sleep(randomTime)
@@ -326,8 +317,6 @@ function holdOn(){
 
 /**
  * @description 启动并登陆钉钉
- * @param {type} 
- * @return {type} 
  */
 function signIn() {
 
@@ -367,15 +356,15 @@ function signIn() {
 
 /**
  * @description 处理钉钉更新弹窗
- * @param {type} 
- * @return {type} 
  */
 function handleUpdata(){
 
     if (null != textMatches("暂不更新").clickable(true).findOne(3000)) {
         console.info("发现更新弹窗")
+
         btn_dontUpdate = textMatches(/(.*暂不更新.*)/).findOnce()
         btn_dontUpdate.click()
+
         console.log("暂不更新")
         sleep(1000)
     }
@@ -384,31 +373,33 @@ function handleUpdata(){
 
 /**
  * @description 处理迟到打卡
- * @param {type} 
- * @return {type} 
  */
 function handleLate(){
 
     if (null != descMatches("迟到打卡").clickable(true).findOne(1000)) {
         console.log("descMatches：迟到打卡")
-        desc("迟到打卡").findOne().click()
+
+        btn_late = descMatches(/(.*迟到打卡.*)/).clickable(true).findOnce() 
+        btn_late.click()
     }
+    
     if (null != textMatches("迟到打卡").clickable(true).findOne(1000)) {
         console.log("textMatches：迟到打卡")
-        text("迟到打卡").findOne().click()
+
+        btn_late = textMatches(/(.*迟到打卡.*)/).clickable(true).findOnce() 
+        btn_late.click()
     }
 }
 
 
 /**
  * @description 进入工作台
- * @param {type} 
- * @return {type} 
  */
 function enterGongzuo(){
     
     if (null != descMatches("工作台").clickable(true).findOne(3000)) {
         toastLog("descMatches：工作台")
+
         btn_gongzou = descMatches(/(.*工作台.*)/).findOnce()
         btn_gongzou.click()
     }
@@ -425,12 +416,12 @@ function enterGongzuo(){
 
 /**
  * @description 进入打卡界面
- * @param {type} 
- * @return {type} 
  */
 function enterKaoqin(){
+
     if (null != textMatches("去打卡").clickable(true).findOne(3000)) {
         console.log("textMatches：去打卡")
+
         btn_kaoqin = textMatches(/(.*去打卡.*)/).clickable(true).findOnce() 
         btn_kaoqin.click()
     }
@@ -449,9 +440,7 @@ function enterKaoqin(){
 
 
 /**
- * @description 直接拉起考勤打卡界面（URL Scheme）
- * @param {type} 
- * @return {type} 
+ * @description 使用Intent拉起考勤打卡界面
  */
 function attendKaoqin(){
     var a = app.intent({
@@ -459,14 +448,11 @@ function attendKaoqin(){
         data: "dingtalk://dingtalkclient/page/link?url=https://attend.dingtalk.com/attend/index.html"
       });
       app.startActivity(a);
-      sleep(5000)
 }
 
 
 /**
  * @description 上班打卡 
- * @param {type} 
- * @return {type} 
  */
 function clockIn() {
 
@@ -522,8 +508,6 @@ function clockIn() {
 
 /**
  * @description 下班打卡 
- * @param {type} 
- * @return {type} 
  */
 function clockOut() {
 
@@ -559,8 +543,6 @@ function clockOut() {
         console.log("早退打卡")
     }
     
-    sleep(2000);
-    
     if (null != textContains("下班打卡成功").findOne(3000)) {
         toastLog("下班打卡成功")
     }
@@ -572,8 +554,6 @@ function clockOut() {
 
 /**
  * @description 锁屏
- * @param {type} 
- * @return {type} 
  */
 function lockScreen(){
 
@@ -582,9 +562,13 @@ function lockScreen(){
     device.setBrightnessMode(1) // 自动亮度模式
     device.cancelKeepingAwake() // 取消设备常亮
     
-    // Power() // 模拟按下电源键，此函数依赖于root权限
+    // Root
+    // Power()
+
+    // No Root
     press(BUTTON_HOME_POS_X, BUTTON_HOME_POS_Y, 1000) // 小米的快捷手势：长按Home键锁屏
 }
+
 
 
 // ===================== 功能函数 =======================
@@ -657,7 +641,6 @@ function delStorageData(name, key) {
         storage.remove(key)
     }
 }
-// ===================== 功能函数 =======================
 ```
 
 ## 使用方法
@@ -706,6 +689,17 @@ PC和手机连接到同一网络，使用 VSCode + Auto.js插件（在扩展中�
 
 优化：若无法进入考勤打卡界面，则使用intent直接拉起考勤打卡界面
 
+```javascript
+function attendKaoqin(){
+    var a = app.intent({
+        action: "VIEW",
+        data: "dingtalk://dingtalkclient/page/link?url=https://attend.dingtalk.com/attend/index.html" // 在后面加上 ?CorpId=************
+      });
+      app.startActivity(a);
+      sleep(5000)
+}
+```
+
 获取URL的方式：
 
 1. 在PC端找到 “智能工作助理” 联系人
@@ -714,20 +708,9 @@ PC和手机连接到同一网络，使用 VSCode + Auto.js插件（在扩展中�
 
 3. 弹出一个二维码。此二维码就是拉起考勤打卡界面的 URL Scheme ，用自带的相机或其他应用扫描，并在浏览器中打开，即可获得完整URL Scheme
 
-4. 无需使用完整URL，将`/CorpId=***` 拼接到 `dingtalk://dingtalkclient/page/link?url=https://attend.dingtalk.com/attend/index.html` 之后即可
+4. 无需使用完整URL，将`?CorpId=***` 拼接到 `dingtalk://dingtalkclient/page/link?url=https://attend.dingtalk.com/attend/index.html` 之后即可
 
-仅使用 `dingtalk://dingtalkclient/page/link?url=https://attend.dingtalk.com/attend/index.html`，也可以拉起旧版打卡界面，钉钉会自动获取CorpId，并跳转到新版打卡界面
-
-```javascript
-function attendKaoqin(){
-    var a = app.intent({
-        action: "VIEW",
-        data: "dingtalk://dingtalkclient/page/link?url=https://attend.dingtalk.com/attend/index.html" // 在后面加上 /CorpId=************
-      });
-      app.startActivity(a);
-      sleep(5000)
-}
-```
+5. 仅使用 `dingtalk://dingtalkclient/page/link?url=https://attend.dingtalk.com/attend/index.html`，也可以拉起旧版打卡界面，钉钉会自动获取CorpId，并跳转到新版打卡界面
 
 ### 2020-09-11
 
