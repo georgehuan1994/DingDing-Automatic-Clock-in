@@ -57,7 +57,7 @@ const SCREEN_BRIGHTNESS = 20
 const NOTIFICATIONS_FILTER = false; 
 
 // BundleId白名单
-const bundleIdBUNDLE_ID_WHITE_LIST = [BUNDLE_ID_DD,BUNDLE_ID_XMSF,BUNDLE_ID_MAIL,BUNDLE_ID_TASKER, ]
+const BUNDLE_ID_WHITE_LIST = [BUNDLE_ID_DD,BUNDLE_ID_XMSF,BUNDLE_ID_MAIL,BUNDLE_ID_TASKER, ]
 
 // 公司的钉钉CorpId，获取方法见更新日志，可留空
 const CORP_ID = "" 
@@ -74,7 +74,6 @@ WEEK_DAY[6] = "Saturday"
 
 // =================== ↓↓↓ 主线程：监听通知 ↓↓↓ ====================
 
-var message = ""
 var suspend = false
 var needWaiting = true
 var currentDate = new Date()
@@ -136,25 +135,27 @@ function notificationHandler(notification) {
     }
     
     // 监听文本为 "考勤结果" 的通知 
-    if ((bundleId == BUNDLE_ID_MAIL || bundleId == BUNDLE_ID_XMSF) && text == "考勤结果") { 
+    if ((bundleId == BUNDLE_ID_MAIL || bundleId == BUNDLE_ID_XMSF) && (text == "Re: 考勤结果" || text == "考勤结果")) {
         threads.shutDownAll()
-        message = getStorageData("dingding", "clockResult")
-        console.warn(message)
-        sendEmail()
+        sendEmail("考勤结果", getStorageData("dingding", "clockResult"))
         return;
     }
 
     // 监听文本为 "暂停" 的通知 
-    if ((bundleId == BUNDLE_ID_MAIL || bundleId == BUNDLE_ID_XMSF) && text == "暂停") { 
+    if ((bundleId == BUNDLE_ID_MAIL || bundleId == BUNDLE_ID_XMSF) && text == "暂停") {
+        threads.shutDownAll()
         suspend = true
         console.log("暂停定时打卡")
+        sendEmail("操作成功", "已暂停定时打卡功能")
         return;
     }
 
     // 监听文本为 "恢复" 的通知 
-    if ((bundleId == BUNDLE_ID_MAIL || bundleId == BUNDLE_ID_XMSF) && text == "恢复") { 
+    if ((bundleId == BUNDLE_ID_MAIL || bundleId == BUNDLE_ID_XMSF) && text == "恢复") {
+        threads.shutDownAll()
         suspend = false
         console.log("恢复定时打卡")
+        sendEmail("操作成功", "已恢复定时打卡功能")
         return;
     }
 
@@ -165,10 +166,8 @@ function notificationHandler(notification) {
     // 监听钉钉返回的考勤结果
     if (bundleId == BUNDLE_ID_DD && text.indexOf("考勤打卡") >= 0) { 
         threads.shutDownAll()
-        message = text
-        console.warn(message)
         setStorageData("dingding", "clockResult", text)
-        sendEmail()
+        sendEmail("考勤结果", text)
         return;
     }
 }
@@ -209,9 +208,11 @@ function doClock() {
 
 
 /**
- * @description 发邮件主程序
+ * @description 发邮件主程序 
+ * @param {*} sub 邮件主题
+ * @param {*} message 邮件正文
  */
-function sendEmail() {
+function sendEmail(sub, message) {
 
     console.info("开始执行邮件发送主程序")
 
@@ -221,7 +222,7 @@ function sendEmail() {
     console.info("正在发送邮件")
     app.sendEmail({
         email: [EMAILL_ADDRESS],
-        subject: "考勤结果",
+        subject: sub,
         text: message
     })
     
@@ -242,7 +243,6 @@ function sendEmail() {
     id("send").findOne().click()
 
     console.log("已发送")
-    message = ""
     
     home()
     sleep(1000)
@@ -635,7 +635,7 @@ function filterNotification(bundleId, abstract, text) {
         console.verbose("---------------------------")
         return true
     }
-    bundleIdBUNDLE_ID_WHITE_LIST.every(function(item) {
+    BUNDLE_ID_WHITE_LIST.every(function(item) {
         var result = bundleId == item
         return result
     });
