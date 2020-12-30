@@ -23,7 +23,7 @@
 /*
  * @Author: George Huan
  * @Date: 2020-08-03 09:30:30
- * @LastEditTime: 2020-12-04 11:44:38
+ * @LastEditTime: 2020-12-30 10:55:48
  * @Description: DingDing-Automatic-Clock-in (Run on AutoJs)
  */
 
@@ -56,24 +56,28 @@ const SCREEN_BRIGHTNESS = 20
 // 是否过滤通知
 const NOTIFICATIONS_FILTER = false; 
 
-// BundleId过滤列表
-var bundleIdAllowList = [BUNDLE_ID_DD,BUNDLE_ID_XMSF,BUNDLE_ID_MAIL,BUNDLE_ID_TASKER, ]
+// BundleId白名单
+const bundleIdBUNDLE_ID_WHITE_LIST = [BUNDLE_ID_DD,BUNDLE_ID_XMSF,BUNDLE_ID_MAIL,BUNDLE_ID_TASKER, ]
 
-var weekday = new Array(7);
-weekday[0] = "Sunday"
-weekday[1] = "Monday"
-weekday[2] = "Tuesday"
-weekday[3] = "Wednesday"
-weekday[4] = "Thursday"
-weekday[5] = "Friday"
-weekday[6] = "Saturday"
+// 公司的钉钉CorpId，获取方法见更新日志，可留空
+const CORP_ID = "" 
+
+const WEEK_DAY = new Array(7);
+WEEK_DAY[0] = "Sunday"
+WEEK_DAY[1] = "Monday"
+WEEK_DAY[2] = "Tuesday"
+WEEK_DAY[3] = "Wednesday"
+WEEK_DAY[4] = "Thursday"
+WEEK_DAY[5] = "Friday"
+WEEK_DAY[6] = "Saturday"
+
+
+// =================== ↓↓↓ 主线程：监听通知 ↓↓↓ ====================
 
 var message = ""
+var suspend = false
 var needWaiting = true
 var currentDate = new Date()
-
-
-// ===================== 主线程：监听并处理通知 ======================
 
 // 检查无障碍权限启动
 auto.waitFor("normal")          
@@ -94,7 +98,7 @@ events.onNotification(function(notification) {
 
 toastLog("监听中，请在日志中查看记录的通知及其内容")
 
-// ===================== 主线程：监听并处理通知 =======================
+// =================== ↑↑↑ 主线程：监听通知 ↑↑↑ =====================
 
 
 
@@ -107,13 +111,14 @@ function notificationHandler(notification) {
     var abstract = notification.tickerText          // 获取通知摘要
     var text = notification.getText()               // 获取通知文本
 
-    // 筛选通知
+    // 过滤通知
     if (!filterNotification(bundleId, abstract, text)) { 
         return;
     }
 
     // 监听摘要为 "定时打卡" 的通知
-    if (abstract == "定时打卡") { 
+    // 不一定要从 Tasker 中发出通知，日历、定时器等App均可实现
+    if (abstract == "定时打卡" && !suspend) { 
         needWaiting = true
         threads.start(function(){
             doClock()
@@ -130,12 +135,26 @@ function notificationHandler(notification) {
         return;
     }
     
-    // 监听文本为 "打卡结果" 的通知
-    if ((bundleId == BUNDLE_ID_MAIL || bundleId == BUNDLE_ID_XMSF) && text == "打卡结果") { 
+    // 监听文本为 "考勤结果" 的通知 
+    if ((bundleId == BUNDLE_ID_MAIL || bundleId == BUNDLE_ID_XMSF) && text == "考勤结果") { 
         threads.shutDownAll()
         message = getStorageData("dingding", "clockResult")
         console.warn(message)
         sendEmail()
+        return;
+    }
+
+    // 监听文本为 "暂停" 的通知 
+    if ((bundleId == BUNDLE_ID_MAIL || bundleId == BUNDLE_ID_XMSF) && text == "暂停") { 
+        suspend = true
+        console.log("暂停定时打卡")
+        return;
+    }
+
+    // 监听文本为 "恢复" 的通知 
+    if ((bundleId == BUNDLE_ID_MAIL || bundleId == BUNDLE_ID_XMSF) && text == "恢复") { 
+        suspend = false
+        console.log("恢复定时打卡")
         return;
     }
 
@@ -206,7 +225,9 @@ function sendEmail() {
         text: message
     })
     
+    // 等待选择应用界面弹窗出现，如果设置了默认应用就注释掉
     waitForActivity("com.android.internal.app.ChooserActivity")
+    
     if (null != textMatches(NAME_OF_EMAILL_APP).findOne(3000)) {
         btn_email = textMatches(NAME_OF_EMAILL_APP).findOnce().parent()
         btn_email.click()
@@ -443,9 +464,16 @@ function enterKaoqin(){
  * @description 使用Intent拉起考勤打卡界面
  */
 function attendKaoqin(){
+
+    var url_scheme = "dingtalk://dingtalkclient/page/link?url=https://attend.dingtalk.com/attend/index.html"
+
+    if(CORP_ID != "") {
+        url_scheme = url_scheme + "?corpId=" + CORP_ID
+    }
+
     var a = app.intent({
         action: "VIEW",
-        data: "dingtalk://dingtalkclient/page/link?url=https://attend.dingtalk.com/attend/index.html"
+        data: url_scheme
       });
       app.startActivity(a);
 }
@@ -471,7 +499,7 @@ function clockIn() {
     console.log("已连接")
     sleep(1000)
 
-    if (null != textMatches("上班打卡").findOne(1000)) {
+    if (null != textMatches("上班打卡").clickable(true).findOne(1000)) {
         // textMatches(/(.*上班打卡.*)/).findOnce().parent().parent().click()
         // textMatches(/(.*上班打卡.*)/).findOnce().parent().click()
         textMatches(/(.*上班打卡.*)/).findOnce().click()
@@ -479,7 +507,7 @@ function clockIn() {
         sleep(1000)
     }
 
-    if (null != descMatches("上班打卡").findOne(1000)) {
+    if (null != descMatches("上班打卡").clickable(true).findOne(1000)) {
         // descMatches(/(.*上班打卡.*)/).findOnce().parent().parent().click()
         // descMatches(/(.*上班打卡.*)/).findOnce().parent().click()
         descMatches(/(.*上班打卡.*)/).findOnce().click()
@@ -495,7 +523,7 @@ function clockIn() {
     console.log("按下打卡按钮")
     sleep(1000)
 
-    handleLate() // 迟到打卡
+    handleLate() // 处理迟到打卡
     
     if (null != textContains("上班打卡成功").findOne(3000)) {
         toastLog("上班打卡成功")
@@ -570,15 +598,16 @@ function lockScreen(){
 }
 
 
-
 // ===================== 功能函数 =======================
+
+
 
 function dateDigitToString(num){
     return num < 10 ? '0' + num : num
 }
 
 function getCurrentTime(){
-    currentDate = new Date()
+    var currentDate = new Date()
     var hours = dateDigitToString(currentDate.getHours())
     var minute = dateDigitToString(currentDate.getMinutes())
     var second = dateDigitToString(currentDate.getSeconds())
@@ -587,12 +616,12 @@ function getCurrentTime(){
 }
 
 function getCurrentDate(){
-    currentDate = new Date()
+    var currentDate = new Date()
     var year = dateDigitToString(currentDate.getFullYear())
     var month = dateDigitToString(currentDate.getMonth() + 1) // Date.getMonth()的返回值是0-11,所以要+1
     var date = dateDigitToString(currentDate.getDate())
     var week = currentDate.getDay()
-    var formattedDateString = year + '-' + month + '-' + date + '-' + weekday[week]
+    var formattedDateString = year + '-' + month + '-' + date + '-' + WEEK_DAY[week]
     return formattedDateString
 }
 
@@ -606,7 +635,7 @@ function filterNotification(bundleId, abstract, text) {
         console.verbose("---------------------------")
         return true
     }
-    bundleIdAllowList.every(function(item) {
+    bundleIdBUNDLE_ID_WHITE_LIST.every(function(item) {
         var result = bundleId == item
         return result
     });
@@ -665,7 +694,12 @@ PC和手机连接到同一网络，使用 VSCode + Auto.js插件（在扩展中�
 ### 远程打卡
 回复标题为 "打卡" 的邮件，即可触发打卡进程
 
-回复标题为 "打卡结果" 的邮件，即可查询最新一次打卡结果
+回复标题为 "考勤结果" 的邮件，即可查询最新一次打卡结果
+
+### 暂停/恢复定时打卡
+回复标题为 "暂停" 的邮件，即可暂停定时打卡功能（仅暂停定时打卡，不影响远程打卡功能）
+
+回复标题为 "恢复" 的邮件，即可恢复定时打卡功能
 
 ### 注意事项
 1. 此脚本会自动适配不同分辨率的设备，但AutoJs对平板的兼容性不佳，不推荐在平板设备上使用
@@ -677,6 +711,10 @@ PC和手机连接到同一网络，使用 VSCode + Auto.js插件（在扩展中�
 4. 虽然脚本可执行完整的打卡步骤，但仍推荐开启钉钉的极速打卡功能，在钉钉启动时即可完成打卡，应把后续的步骤视为极速打卡失败后的保险措施
 
 ## 更新日志
+### 2020-12-30
+
+优化：现在可以通过邮件来 暂停/恢复 定时打卡功能，以应对极端天气造成的停工停产，或其他需要暂时停止定时打卡的特殊情况
+
 ### 2020-12-04
 
 优化：打卡过程在子线程中执行，钉钉返回打卡结果后，直接中断子线程，减少无效操作
