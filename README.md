@@ -1,6 +1,6 @@
 # DingDing-Automatic-Clock-in
 
-<img width="270" height="585" src="https://github.com/georgehuan1994/DingDing-Automatic-Clock-in/blob/master/图片/Screenshot_2020-10-29-19-29-35-361_org.autojs.autojs.jpg"/>  <img width="270" height="585" src="https://github.com/georgehuan1994/DingDing-Automatic-Clock-in/blob/master/图片/Screenshot_20201029193358.png"/>
+<img width="300" src="https://github.com/georgehuan1994/DingDing-Automatic-Clock-in/blob/master/图片/Screenshot_2020-10-29-19-29-35-361_org.autojs.autojs.jpg"/> <img width="300"  src="https://github.com/georgehuan1994/DingDing-Automatic-Clock-in/blob/master/图片/Scrennshot_20201231094431.png"/>
 
 ## 简介
 钉钉自动打卡、远程打卡脚本，基于AutoJs，免Root
