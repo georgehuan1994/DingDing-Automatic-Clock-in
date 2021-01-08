@@ -23,7 +23,7 @@
 /*
  * @Author: George Huan
  * @Date: 2020-08-03 09:30:30
- * @LastEditTime: 2020-12-30 10:55:48
+ * @LastEditTime: 2021-01-08 14:51:18
  * @Description: DingDing-Automatic-Clock-in (Run on AutoJs)
  */
 
@@ -59,17 +59,10 @@ const NOTIFICATIONS_FILTER = false;
 // BundleId白名单
 const BUNDLE_ID_WHITE_LIST = [BUNDLE_ID_DD,BUNDLE_ID_XMSF,BUNDLE_ID_MAIL,BUNDLE_ID_TASKER, ]
 
+const WEEK_DAY = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday",]
+
 // 公司的钉钉CorpId，获取方法见更新日志，可留空
 const CORP_ID = "" 
-
-const WEEK_DAY = new Array(7);
-WEEK_DAY[0] = "Sunday"
-WEEK_DAY[1] = "Monday"
-WEEK_DAY[2] = "Tuesday"
-WEEK_DAY[3] = "Wednesday"
-WEEK_DAY[4] = "Thursday"
-WEEK_DAY[5] = "Friday"
-WEEK_DAY[6] = "Saturday"
 
 
 // =================== ↓↓↓ 主线程：监听通知 ↓↓↓ ====================
@@ -126,7 +119,7 @@ function notificationHandler(notification) {
     }
     
     // 监听文本为 "打卡" 的通知
-    if ((bundleId == BUNDLE_ID_MAIL || bundleId == BUNDLE_ID_XMSF) && text == "打卡") { 
+    if ((bundleId == BUNDLE_ID_MAIL || bundleId == BUNDLE_ID_XMSF) && (text == "Re: 打卡" || text == "打卡")) { 
         needWaiting = false
         threads.start(function(){
             doClock()
@@ -178,10 +171,6 @@ function notificationHandler(notification) {
  */
 function doClock() {
     
-    console.show()              // 显示控制台
-    sleep(100)                  // 等待控制台出现
-    console.setSize(800,450)    // 调整控制台尺寸
-
     currentDate = new Date()
     console.info("当前：" + getCurrentDate() + " " + getCurrentTime())
     console.log("开始执行打卡主程序")
@@ -193,6 +182,7 @@ function doClock() {
     signIn()            // 自动登录
     handleUpdata()      // 处理更新
     handleLate()        // 处理迟到
+    
     enterGongzuo()      // 进入工作台
     enterKaoqin()       // 进入打卡界面
 
@@ -203,7 +193,6 @@ function doClock() {
         clockOut()      // 下班打卡
     }
     lockScreen()        // 关闭屏幕
-    console.hide()      // 关闭控制台
 }
 
 
@@ -507,14 +496,6 @@ function clockIn() {
         sleep(1000)
     }
 
-    if (null != descMatches("上班打卡").clickable(true).findOne(1000)) {
-        // descMatches(/(.*上班打卡.*)/).findOnce().parent().parent().click()
-        // descMatches(/(.*上班打卡.*)/).findOnce().parent().click()
-        descMatches(/(.*上班打卡.*)/).findOnce().click()
-        console.log("descMatches：上班打卡")
-        sleep(1000)
-    }
-
     click(BUTTON_DAKA_X,BUTTON_DAKA_Y)
     sleep(200)
     click(BUTTON_DAKA_X,BUTTON_DAKA_Y)
@@ -628,24 +609,18 @@ function getCurrentDate(){
 // 通知过滤器
 function filterNotification(bundleId, abstract, text) {
     
-    if (!NOTIFICATIONS_FILTER) {
+    var check = BUNDLE_ID_WHITE_LIST.some(function(item) {return bundleId == item})
+    
+    if (!NOTIFICATIONS_FILTER || check) {
         console.verbose(bundleId)
         console.verbose(abstract)
-        console.verbose(text)  
+        console.verbose(text)
         console.verbose("---------------------------")
         return true
     }
-    BUNDLE_ID_WHITE_LIST.every(function(item) {
-        var result = bundleId == item
-        return result
-    });
-    if (result) {
-        console.verbose(bundleId)
-        console.verbose(abstract)
-        console.verbose(text)  
-        console.verbose("---------------------------")
+    else {
+        return false 
     }
-    return result
 }
 
 // 保存本地数据
@@ -711,6 +686,10 @@ PC和手机连接到同一网络，使用 VSCode + Auto.js插件（在扩展中�
 4. 虽然脚本可执行完整的打卡步骤，但仍推荐开启钉钉的极速打卡功能，在钉钉启动时即可完成打卡，应把后续的步骤视为极速打卡失败后的保险措施
 
 ## 更新日志
+### 2021-01-08
+
+修复：通知过滤器报错
+
 ### 2020-12-30
 
 优化：现在可以通过邮件来 暂停/恢复 定时打卡功能，以应对极端天气造成的停工停产，或其他需要暂时停止定时打卡的特殊情况
