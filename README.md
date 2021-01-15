@@ -23,7 +23,7 @@
 /*
  * @Author: George Huan
  * @Date: 2020-08-03 09:30:30
- * @LastEditTime: 2021-01-08 14:51:18
+ * @LastEditTime: 2021-01-15 09:45:55
  * @Description: DingDing-Automatic-Clock-in (Run on AutoJs)
  */
 
@@ -72,7 +72,7 @@ var needWaiting = true
 var currentDate = new Date()
 
 // 检查无障碍权限启动
-auto.waitFor("normal")          
+auto.waitFor("normal")
 
 // 创建运行日志
 console.setGlobalLogConfig({
@@ -170,10 +170,10 @@ function notificationHandler(notification) {
  * @description 打卡主程序 
  */
 function doClock() {
-    
+
     currentDate = new Date()
-    console.info("当前：" + getCurrentDate() + " " + getCurrentTime())
-    console.log("开始执行打卡主程序")
+    console.info("本地时间：" + getCurrentDate() + " " + getCurrentTime())
+    console.log("执行打卡主程序")
 
     brightScreen()      // 唤醒屏幕
     unlockScreen()      // 解锁屏幕
@@ -182,9 +182,8 @@ function doClock() {
     signIn()            // 自动登录
     handleUpdata()      // 处理更新
     handleLate()        // 处理迟到
-    
-    enterGongzuo()      // 进入工作台
-    enterKaoqin()       // 进入打卡界面
+
+    attendKaoqin()      // 使用 URL Scheme 进入考勤界面
 
     if (currentDate.getHours() <= 12) {
         clockIn()       // 上班打卡
@@ -198,20 +197,19 @@ function doClock() {
 
 /**
  * @description 发邮件主程序 
- * @param {*} sub 邮件主题
+ * @param {*} title 邮件主题
  * @param {*} message 邮件正文
  */
-function sendEmail(sub, message) {
+function sendEmail(title, message) {
 
-    console.info("开始执行邮件发送主程序")
+    console.info("执行邮件发送主程序")
 
     brightScreen()  // 唤醒屏幕
     unlockScreen()  // 解锁屏幕
 
-    console.info("正在发送邮件")
     app.sendEmail({
         email: [EMAILL_ADDRESS],
-        subject: sub,
+        subject: title,
         text: message
     })
     
@@ -231,7 +229,7 @@ function sendEmail(sub, message) {
     waitForActivity("com.netease.mobimail.activity.MailComposeActivity")
     id("send").findOne().click()
 
-    console.log("已发送")
+    console.info("正在发送邮件...")
     
     home()
     sleep(1000)
@@ -403,54 +401,7 @@ function handleLate(){
 
 
 /**
- * @description 进入工作台
- */
-function enterGongzuo(){
-    
-    if (null != descMatches("工作台").clickable(true).findOne(3000)) {
-        toastLog("descMatches：工作台")
-
-        btn_gongzou = descMatches(/(.*工作台.*)/).findOnce()
-        btn_gongzou.click()
-    }
-
-    console.info("正在进入工作台...")
-    sleep(5000)
-    
-    if (id("menu_work_info").exists()) {
-        console.log("已进入工作台页面")
-        sleep(1000)
-    }
-}
-
-
-/**
- * @description 进入打卡界面
- */
-function enterKaoqin(){
-
-    if (null != textMatches("去打卡").clickable(true).findOne(3000)) {
-        console.log("textMatches：去打卡")
-
-        btn_kaoqin = textMatches(/(.*去打卡.*)/).clickable(true).findOnce() 
-        btn_kaoqin.click()
-    }
-    else {
-        attendKaoqin()
-    }
-
-    console.info("正在进入考勤打卡页面...")
-    sleep(6000)
-    
-    if (null != textMatches("申请").clickable(true).findOne(3000)) {
-        console.log("已进入考勤打卡页面")
-        sleep(1000)
-    }
-}
-
-
-/**
- * @description 使用Intent拉起考勤打卡界面
+ * @description 使用 URL Scheme 进入考勤界面
  */
 function attendKaoqin(){
 
@@ -463,8 +414,16 @@ function attendKaoqin(){
     var a = app.intent({
         action: "VIEW",
         data: url_scheme
-      });
-      app.startActivity(a);
+    });
+    app.startActivity(a);
+
+    console.info("正在进入考勤打卡页面...")
+    sleep(6000)
+    
+    if (null != textMatches("申请").clickable(true).findOne(3000)) {
+        console.log("已进入考勤打卡页面")
+        sleep(1000)
+    }
 }
 
 
@@ -581,8 +540,6 @@ function lockScreen(){
 
 // ===================== 功能函数 =======================
 
-
-
 function dateDigitToString(num){
     return num < 10 ? '0' + num : num
 }
@@ -599,7 +556,7 @@ function getCurrentTime(){
 function getCurrentDate(){
     var currentDate = new Date()
     var year = dateDigitToString(currentDate.getFullYear())
-    var month = dateDigitToString(currentDate.getMonth() + 1) // Date.getMonth()的返回值是0-11,所以要+1
+    var month = dateDigitToString(currentDate.getMonth() + 1)
     var date = dateDigitToString(currentDate.getDate())
     var week = currentDate.getDay()
     var formattedDateString = year + '-' + month + '-' + date + '-' + WEEK_DAY[week]
@@ -677,15 +634,19 @@ PC和手机连接到同一网络，使用 VSCode + Auto.js插件（在扩展中�
 回复标题为 "恢复" 的邮件，即可恢复定时打卡功能
 
 ### 注意事项
-1. 此脚本会自动适配不同分辨率的设备，但AutoJs对平板的兼容性不佳，不推荐在平板设备上使用
+- 此脚本会自动适配不同分辨率的设备，但AutoJs对平板的兼容性不佳，不推荐在平板设备上使用
 
-2. 首次启动AutoJs时，需要为其开启无障碍权限
+- 首次启动AutoJs时，需要为其开启无障碍权限
 
-3. 为保证AutoJs、Tasker进程不被系统清理，可调整它们的电池管理策略、加入管理应用的白名单，为其开启前台服务、添加应用锁
+- 为保证AutoJs、Tasker进程不被系统清理，可调整它们的电池管理策略、加入管理应用的白名单，为其开启前台服务、添加应用锁
 
-4. 虽然脚本可执行完整的打卡步骤，但仍推荐开启钉钉的极速打卡功能，在钉钉启动时即可完成打卡，应把后续的步骤视为极速打卡失败后的保险措施
+- 虽然脚本可执行完整的打卡步骤，但仍推荐开启钉钉的极速打卡功能，在钉钉启动时即可完成打卡，应把后续的步骤视为极速打卡失败后的保险措施
 
 ## 更新日志
+### 2021-01-15
+
+针对钉钉6.0版本进行调整：启动并登录钉钉后，直接使用URL Scheme拉起考勤打卡界面
+
 ### 2021-01-08
 
 修复：通知过滤器报错
@@ -704,7 +665,7 @@ PC和手机连接到同一网络，使用 VSCode + Auto.js插件（在扩展中�
 
 ### 2020-09-24
 
-优化：若无法进入考勤打卡界面，则使用intent直接拉起考勤打卡界面
+优化：若无法进入考勤打卡界面，则使用URL Scheme直接拉起考勤打卡界面
 
 ```javascript
 function attendKaoqin(){
@@ -725,17 +686,17 @@ function attendKaoqin(){
 
 3. 弹出一个二维码。此二维码就是拉起考勤打卡界面的 URL Scheme ，用自带的相机或其他应用扫描，并在浏览器中打开，即可获得完整URL Scheme
 
-4. 无需使用完整URL，将`?CorpId=***` 拼接到 `dingtalk://dingtalkclient/page/link?url=https://attend.dingtalk.com/attend/index.html` 之后即可
+4. 无需使用完整URL，将`?CorpId=***` 拼接到 `dingtalk://dingtalkclient/page/link?url=https://attend.dingtalk.com/attend/index.html` 的后面
 
-5. 仅使用 `dingtalk://dingtalkclient/page/link?url=https://attend.dingtalk.com/attend/index.html`，也可以拉起旧版打卡界面，钉钉会自动获取CorpId，并跳转到新版打卡界面
+5. 仅使用 `dingtalk://dingtalkclient/page/link?url=https://attend.dingtalk.com/attend/index.html`，也可以拉起旧版打卡界面，钉钉会自动获取主企业的CorpId，并跳转到新版打卡界面
 
 ### 2020-09-11
 
-- 将上次考勤结果储存在本地
+1. 将上次考勤结果储存在本地
 
-- 将运行日志储存在本地 /sdcard/脚本/Archive/
+2. 将运行日志储存在本地 /sdcard/脚本/Archive/
 
-- 修复在下班极速打卡之后，重复打卡的问题
+3. 修复在下班极速打卡之后，重复打卡的问题
 
 ### 2020-09-04
 
