@@ -8,7 +8,7 @@
 ## 功能
 - 定时自动打卡
 - 远程指令打卡
-- 发送打卡结果
+- 自动回复打卡结果
 
 ## 工具
 - AutoJs
@@ -16,15 +16,16 @@
 - 网易邮箱大师
 
 ## 原理
-在AutoJs脚本中监听本机通知，并在Tasker中创建定时任务发出打卡通知，或在另一设备上发送消息到本机，即可触发脚本中的打卡流程，实现定时打卡和远程打卡。
+在AutoJs脚本中监听本机通知，并在Tasker中创建定时任务发出打卡通知，或在另一设备上发送消息到本机，即可触发脚本中的打卡进程，实现定时打卡和远程打卡。
 
 ## 脚本
 ```javascript
 /*
  * @Author: George Huan
  * @Date: 2020-08-03 09:30:30
- * @LastEditTime: 2021-01-15 09:45:55
+ * @LastEditTime: 2021-01-25 10:05:27
  * @Description: DingDing-Automatic-Clock-in (Run on AutoJs)
+ * @URL: https://github.com/georgehuan1994/DingDing-Automatic-Clock-in
  */
 
 const ACCOUNT = "钉钉账号"
@@ -41,14 +42,6 @@ const NAME_OF_ATTENDANCE_MACHINE = "前台大门" // 考勤机名称
 
 const LOWER_BOUND = 1 * 60 * 1000 // 最小等待时间：1min
 const UPPER_BOUND = 5 * 60 * 1000 // 最大等待时间：5min
-
-// Home键坐标y，用于快捷手势：长按Home键锁屏
-const BUTTON_HOME_POS_X = 540
-const BUTTON_HOME_POS_Y = 2278
-
-// 打卡按钮坐标，因上班打卡按钮有可能获取不到，故使用打卡按钮坐标作为保险操作
-const BUTTON_DAKA_X = 540    
-const BUTTON_DAKA_Y = 1325
 
 // 执行时的屏幕亮度（0-255）
 const SCREEN_BRIGHTNESS = 20    
@@ -455,11 +448,12 @@ function clockIn() {
         sleep(1000)
     }
 
-    click(BUTTON_DAKA_X,BUTTON_DAKA_Y)
+    // 打卡按钮坐标，因上班打卡按钮有可能获取不到，故使用打卡按钮坐标作为保险操作
+    click(Math.floor(device.width / 2),Math.floor(device.height * 0.560))
     sleep(200)
-    click(BUTTON_DAKA_X,BUTTON_DAKA_Y)
+    click(Math.floor(device.width / 2),Math.floor(device.height * 0.563))
     sleep(200)
-    click(BUTTON_DAKA_X,BUTTON_DAKA_Y)
+    click(Math.floor(device.width / 2),Math.floor(device.height * 0.566))
     console.log("按下打卡按钮")
     sleep(1000)
 
@@ -534,7 +528,7 @@ function lockScreen(){
     // Power()
 
     // No Root
-    press(BUTTON_HOME_POS_X, BUTTON_HOME_POS_Y, 1000) // 小米的快捷手势：长按Home键锁屏
+    press(Math.floor(device.width / 2), Math.floor(device.height * 0.973), 1000) // 小米的快捷手势：长按Home键锁屏
 }
 
 
@@ -634,13 +628,15 @@ PC和手机连接到同一网络，使用 VSCode + Auto.js插件（在扩展中�
 回复标题为 "恢复" 的邮件，即可恢复定时打卡功能
 
 ### 注意事项
+- 首次启动AutoJs时，需要为其开启无障碍权限
+
 - 此脚本会自动适配不同分辨率的设备，但AutoJs对平板的兼容性不佳，不推荐在平板设备上使用
 
-- 首次启动AutoJs时，需要为其开启无障碍权限
+- AutoJs、Tasker可息屏运行，但需要在系统设置中开启通知亮屏
 
 - 为保证AutoJs、Tasker进程不被系统清理，可调整它们的电池管理策略、加入管理应用的白名单，为其开启前台服务、添加应用锁
 
-- 虽然脚本可执行完整的打卡步骤，但仍推荐开启钉钉的极速打卡功能，在钉钉启动时即可完成打卡，应把后续的步骤视为极速打卡失败后的保险措施
+- 虽然脚本可执行完整的打卡步骤，但推荐开启钉钉的极速打卡功能，在钉钉启动时即可完成打卡，应把后续的步骤视为极速打卡失败后的保险措施
 
 ## 更新日志
 ### 2021-01-15
