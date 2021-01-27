@@ -23,7 +23,7 @@
 /*
  * @Author: George Huan
  * @Date: 2020-08-03 09:30:30
- * @LastEditTime: 2021-01-25 10:05:27
+ * @LastEditTime: 2021-01-27 09:36:39
  * @Description: DingDing-Automatic-Clock-in (Run on AutoJs)
  * @URL: https://github.com/georgehuan1994/DingDing-Automatic-Clock-in
  */
@@ -105,6 +105,7 @@ function notificationHandler(notification) {
     // 不一定要从 Tasker 中发出通知，日历、定时器等App均可实现
     if (abstract == "定时打卡" && !suspend) { 
         needWaiting = true
+        threads.shutDownAll()
         threads.start(function(){
             doClock()
         })
@@ -114,6 +115,7 @@ function notificationHandler(notification) {
     // 监听文本为 "打卡" 的通知
     if ((bundleId == BUNDLE_ID_MAIL || bundleId == BUNDLE_ID_XMSF) && (text == "Re: 打卡" || text == "打卡")) { 
         needWaiting = false
+        threads.shutDownAll()
         threads.start(function(){
             doClock()
         })
@@ -639,6 +641,15 @@ PC和手机连接到同一网络，使用 VSCode + Auto.js插件（在扩展中�
 - 虽然脚本可执行完整的打卡步骤，但推荐开启钉钉的极速打卡功能，在钉钉启动时即可完成打卡，应把后续的步骤视为极速打卡失败后的保险措施
 
 ## 更新日志
+### 2021-01-27
+临时处理AutoJs监听线程无法停止的问题：在子线程开始前，调用threads.shutDownAll()，避免线程被重复开启。
+
+AutoJs长时间运行后会出现这个问题（大概10天左右）
+
+具体表现为：通知不能被正常监听，停止并重新运行脚本后，一条通知被多次打印
+
+当出现这个情况时，请重启手机
+
 ### 2021-01-15
 
 针对钉钉6.0版本进行调整：
