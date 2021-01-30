@@ -23,7 +23,7 @@
 /*
  * @Author: George Huan
  * @Date: 2020-08-03 09:30:30
- * @LastEditTime: 2021-01-27 09:36:39
+ * @LastEditTime: 2021-01-30 09:34:46
  * @Description: DingDing-Automatic-Clock-in (Run on AutoJs)
  * @URL: https://github.com/georgehuan1994/DingDing-Automatic-Clock-in
  */
@@ -167,8 +167,8 @@ function notificationHandler(notification) {
 function doClock() {
 
     currentDate = new Date()
-    console.info("本地时间：" + getCurrentDate() + " " + getCurrentTime())
-    console.log("执行打卡主程序")
+    console.log("本地时间：" + getCurrentDate() + " " + getCurrentTime())
+    console.log("开始打卡流程！")
 
     brightScreen()      // 唤醒屏幕
     unlockScreen()      // 解锁屏幕
@@ -197,7 +197,7 @@ function doClock() {
  */
 function sendEmail(title, message) {
 
-    console.info("执行邮件发送主程序")
+    console.log("开始发送邮件流程！")
 
     brightScreen()  // 唤醒屏幕
     unlockScreen()  // 解锁屏幕
@@ -216,7 +216,7 @@ function sendEmail(title, message) {
         btn_email.click()
     }
     else {
-        console.log("没有找到" + NAME_OF_EMAILL_APP)
+        console.error("没有找到" + NAME_OF_EMAILL_APP)
         lockScreen()
         return;
     }
@@ -224,7 +224,7 @@ function sendEmail(title, message) {
     waitForActivity("com.netease.mobimail.activity.MailComposeActivity")
     id("send").findOne().click()
 
-    console.info("正在发送邮件...")
+    console.log("正在发送邮件...")
     
     home()
     sleep(1000)
@@ -237,18 +237,18 @@ function sendEmail(title, message) {
  */
 function brightScreen() {
 
-    console.info("唤醒设备")
+    console.log("唤醒设备")
     
     device.setBrightnessMode(0) // 手动亮度模式
     device.setBrightness(SCREEN_BRIGHTNESS)
     device.wakeUpIfNeeded() // 唤醒设备
     device.keepScreenOn()   // 保持亮屏
 
-    console.log("已唤醒")
+    console.log("设备已唤醒")
     
     sleep(1000) // 等待屏幕亮起
     if (!device.isScreenOn()) {
-        console.warn("设备未唤醒")
+        console.warn("设备未唤醒，重试")
         device.wakeUpIfNeeded()
         brightScreen()
     }
@@ -261,14 +261,14 @@ function brightScreen() {
  */
 function unlockScreen() {
 
-    console.info("解锁屏幕")
+    console.log("解锁屏幕")
     
     gesture(320,[540,device.height * 0.9],[540,device.height * 0.1]) // 上滑解锁
     sleep(1000) // 等待解锁动画完成
     home()
     sleep(1000) // 等待返回动画完成
     
-    console.log("已解锁")
+    console.log("屏幕已解锁")
 }
 
 
@@ -277,28 +277,27 @@ function unlockScreen() {
  */
 function stopApp() {
 
-    console.info("结束钉钉进程")
+    console.log("结束钉钉进程")
 
     // Root
     // shell('am force-stop ' + BUNDLE_ID_DD, true) 
 
     // No Root
     app.openAppSetting(BUNDLE_ID_DD)
-    let btn_finish = textMatches(/(.*结束.*)|(.*停止.*)|(.*运行.*)/).clickable(true).findOne() // 找到 "结束运行" 按钮，并点击
+    let btn_finish = textMatches(/(.*结束.*)|(.*停止.*)|(.*运行.*)/).clickable(true).findOne() // 直到找到 "结束运行" 按钮，并点击
     if (btn_finish.enabled()) {
         btn_finish.click()
 
-        btn_sure = textMatches("确定").clickable(true).findOne()
+        btn_sure = textMatches("确定").clickable(true).findOne(1000)
         btn_sure.click() // 找到 "确定" 按钮，并点击
 
-        console.log(app.getAppName(BUNDLE_ID_DD) + "已被关闭")
-        sleep(1000)
-        home()
-    } else {
-        console.log(app.getAppName(BUNDLE_ID_DD) + "未在运行")
-        sleep(1000)
-        home()
+        console.info(app.getAppName(BUNDLE_ID_DD) + "已被关闭")
+    } 
+    else {
+        console.info(app.getAppName(BUNDLE_ID_DD) + "未在运行")
     }
+    sleep(1000)
+    home()
     sleep(1000)
 }
 
@@ -324,7 +323,7 @@ function holdOn(){
 function signIn() {
 
     app.launchPackage(BUNDLE_ID_DD)
-    console.info("正在启动" + app.getAppName(BUNDLE_ID_DD) + "...")
+    console.log("正在启动" + app.getAppName(BUNDLE_ID_DD) + "...")
     
     sleep(10000)    // 等待钉钉启动
     handleUpdata()  // 处理更新弹窗
@@ -346,11 +345,11 @@ function signIn() {
     }
     else {
         if (id("menu_tel").exists()) {
-            console.log("账号已登录，当前位于活动页面")
+            console.info("账号已登录，当前位于消息页面")
             sleep(1000)
         } 
         else {
-            console.warn("未检测到活动页面，重试")
+            console.warn("未检测到消息页面，重试")
             signIn()
         }
     }
@@ -362,14 +361,11 @@ function signIn() {
  */
 function handleUpdata(){
 
-    if (null != textMatches("暂不更新").clickable(true).findOne(3000)) {
-        console.info("发现更新弹窗")
-
-        btn_dontUpdate = textMatches(/(.*暂不更新.*)/).findOnce()
+    if (null != textMatches(/(.*暂不更新.*)/).clickable(true).findOne(3000)) {
+        btn_dontUpdate = textMatches("暂不更新").clickable(true).findOnce()
         btn_dontUpdate.click()
-
-        console.log("暂不更新")
         sleep(1000)
+        console.error("发现更新弹窗！请留意新版本的布局变化！")
     }
 }
 
@@ -378,19 +374,11 @@ function handleUpdata(){
  * @description 处理迟到打卡
  */
 function handleLate(){
-
-    if (null != descMatches("迟到打卡").clickable(true).findOne(1000)) {
-        console.log("descMatches：迟到打卡")
-
-        btn_late = descMatches(/(.*迟到打卡.*)/).clickable(true).findOnce() 
+   
+    if (null != textMatches(/(.*迟到打卡.*)/).clickable(true).findOne(1000)) {
+        btn_late = textMatches("迟到打卡").clickable(true).findOnce() 
         btn_late.click()
-    }
-    
-    if (null != textMatches("迟到打卡").clickable(true).findOne(1000)) {
-        console.log("textMatches：迟到打卡")
-
-        btn_late = textMatches(/(.*迟到打卡.*)/).clickable(true).findOnce() 
-        btn_late.click()
+        console.warn("迟到打卡")
     }
 }
 
@@ -408,15 +396,16 @@ function attendKaoqin(){
 
     var a = app.intent({
         action: "VIEW",
-        data: url_scheme
+        data: url_scheme,
+        //flags: [Intent.FLAG_ACTIVITY_NEW_TASK]
     });
+    
     app.startActivity(a);
-
-    console.info("正在进入考勤打卡页面...")
+    console.log("正在进入考勤界面...")
     sleep(6000)
     
     if (null != textMatches("申请").clickable(true).findOne(3000)) {
-        console.log("已进入考勤打卡页面")
+        console.info("已进入考勤界面")
         sleep(1000)
     }
 }
@@ -437,32 +426,39 @@ function clockIn() {
     }
 
     console.log("等待连接到考勤机...")
-    textContains(NAME_OF_ATTENDANCE_MACHINE).waitFor()
+    textContains(NAME_OF_ATTENDANCE_MACHINE).waitFor(6000)
     
-    console.log("已连接")
+    if (null != textContains("未连接").findOne(1000)) {
+        console.error("未连接考勤机，重新进入考勤界面！")
+        attendKaoqin()
+    }
+
+    textContains(NAME_OF_ATTENDANCE_MACHINE).waitFor()
+    console.info("已连接考勤机：" + NAME_OF_ATTENDANCE_MACHINE)
     sleep(1000)
 
-    if (null != textMatches("上班打卡").clickable(true).findOne(1000)) {
-        // textMatches(/(.*上班打卡.*)/).findOnce().parent().parent().click()
-        // textMatches(/(.*上班打卡.*)/).findOnce().parent().click()
-        textMatches(/(.*上班打卡.*)/).findOnce().click()
-        console.log("textMatches：上班打卡")
+    if (null != textMatches(/(.*上班打卡.*)/).clickable(true).findOne(1000)) {
+        // btn_clockin = textMatches("上班打卡").clickable(true).findOnce().parent().parent().click()
+        // btn_clockin = textMatches("上班打卡").clickable(true).findOnce().parent().click()
+        btn_clockin = textMatches("上班打卡").clickable(true).findOnce();
+        btn_clockin.click()
+        console.log("按下打卡按钮")
         sleep(1000)
     }
 
-    // 打卡按钮坐标，因上班打卡按钮有可能获取不到，故使用打卡按钮坐标作为保险操作
+    // 因上班打卡按钮有可能获取不到，故使用打卡按钮坐标作为保险操作
     click(Math.floor(device.width / 2),Math.floor(device.height * 0.560))
     sleep(200)
     click(Math.floor(device.width / 2),Math.floor(device.height * 0.563))
     sleep(200)
     click(Math.floor(device.width / 2),Math.floor(device.height * 0.566))
-    console.log("按下打卡按钮")
+    console.log("使用坐标按下打卡按钮")
     sleep(1000)
 
     handleLate() // 处理迟到打卡
     
-    if (null != textContains("上班打卡成功").findOne(3000)) {
-        toastLog("上班打卡成功")
+    if (null != textContains("打卡成功").findOne(3000)) {
+        toastLog("打卡成功")
     }
 
     home()
@@ -475,40 +471,45 @@ function clockIn() {
  */
 function clockOut() {
 
-    console.info("下班打卡...")
+    console.log("下班打卡...")
 
     if (null != textContains("更新打卡").findOne(1000)) {
-        toastLog("已打卡")
         if (null != textContains("早退").findOne(1000)) {
-            toastLog("早退")
+            toastLog("早退，更新打卡记录")
         }
         else {
             home()
             sleep(1000)
             return;
         }
-        console.log("更新打卡记录")
     }
 
     console.log("等待连接到考勤机...")
-    textContains(NAME_OF_ATTENDANCE_MACHINE).waitFor()
+    textContains(NAME_OF_ATTENDANCE_MACHINE).waitFor(6000)
     
-    console.log("已连接")
+    if (null != textContains("未连接").findOne(1000)) {
+        console.error("未连接考勤机，重新进入考勤界面！")
+        attendKaoqin()
+    }
+
+    textContains(NAME_OF_ATTENDANCE_MACHINE).waitFor()
+    console.info("已连接考勤机：" + NAME_OF_ATTENDANCE_MACHINE)
     sleep(1000)
 
-    if (null != textMatches("下班打卡").clickable(true).findOne(1000)) {
-        textMatches(/(.*下班打卡.*)/).findOnce().click()
+    if (null != textMatches(/(.*下班打卡.*)/).clickable(true).findOne(1000)) {
+        btn_clockout = textMatches("下班打卡").clickable(true).findOnce()
+        btn_clockout.click()
         console.log("按下打卡按钮")
         sleep(1000)
     }
 
     if (null != textContains("早退打卡").clickable(true).findOne(1000)) {
-        className("android.widget.Button").text("早退打卡").findOnce().parent().click()
-        console.log("早退打卡")
+        className("android.widget.Button").text("早退打卡").clickable(true).findOnce().parent().click()
+        console.warn("早退打卡")
     }
     
-    if (null != textContains("下班打卡成功").findOne(3000)) {
-        toastLog("下班打卡成功")
+    if (null != textContains("打卡成功").findOne(3000)) {
+        toastLog("打卡成功")
     }
 
     home()
@@ -642,13 +643,13 @@ PC和手机连接到同一网络，使用 VSCode + Auto.js插件（在扩展中�
 
 ## 更新日志
 ### 2021-01-27
-临时处理AutoJs监听线程无法停止的问题：在子线程开始前，调用threads.shutDownAll()，避免线程被重复开启。
+临时处理一个AutoJs监听问题：在子线程开始前，调用`threads.shutDownAll()`，避免线程被重复开启。
 
-AutoJs长时间运行后会出现这个问题（大概10天左右）
+AutoJs长时间运行后可能会出现这个问题（大概10天左右）
 
-具体表现为：通知不能被正常监听，停止并重新运行脚本后，一条通知被多次打印
+具体表现为：通知不能被正常监听，若停止并重新运行脚本，一条通知会被多次打印
 
-当出现这个情况时，请重启手机
+当出现这个情况时，需重启AutoJs或重启手机
 
 ### 2021-01-15
 
