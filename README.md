@@ -607,7 +607,7 @@ function delStorageData(name, key) {
 
 AutoJs是安卓平台上的JavaScript自动化工具 https://github.com/hyb1996/Auto.js
 
-官方文档已失效，第三方文档：https://www.easydoc.xyz/doc/25791054/uw2FUUiw/3bEzXb4y
+官方文档：https://hyb1996.github.io/AutoJs-Docs/#/?id=%E7%BB%BC%E8%BF%B0
 
 PC和手机连接到同一网络，使用 VSCode + Auto.js插件（在扩展中心搜索 "hyb1996"） 可方便的调试并将脚本保存到手机上
 
