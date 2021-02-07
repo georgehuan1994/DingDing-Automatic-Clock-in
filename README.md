@@ -23,7 +23,7 @@
 /*
  * @Author: George Huan
  * @Date: 2020-08-03 09:30:30
- * @LastEditTime: 2021-01-30 09:34:46
+ * @LastEditTime: 2021-02-07 13:44:57
  * @Description: DingDing-Automatic-Clock-in (Run on AutoJs)
  * @URL: https://github.com/georgehuan1994/DingDing-Automatic-Clock-in
  */
@@ -72,13 +72,10 @@ console.setGlobalLogConfig({
     file: "/sdcard/脚本/Archive/" + getCurrentDate() + "-log.txt"
 });
 
-// 自动放缩坐标以适配其他设备
-setScreenMetrics(1080, 2340)    
-
 // 监听本机通知
 events.observeNotification()    
-events.onNotification(function(notification) {
-    notificationHandler(notification)
+events.on("notification", function(n) {
+    notificationHandler(n)
 });
 
 toastLog("监听中，请在日志中查看记录的通知及其内容")
@@ -90,11 +87,11 @@ toastLog("监听中，请在日志中查看记录的通知及其内容")
 /**
  * @description 处理通知
  */
-function notificationHandler(notification) {
+function notificationHandler(n) {
     
-    var bundleId = notification.getPackageName()    // 获取通知包名
-    var abstract = notification.tickerText          // 获取通知摘要
-    var text = notification.getText()               // 获取通知文本
+    var bundleId = n.getPackageName()    // 获取通知包名
+    var abstract = n.tickerText          // 获取通知摘要
+    var text = n.getText()               // 获取通知文本
 
     // 过滤通知
     if (!filterNotification(bundleId, abstract, text)) { 
@@ -125,25 +122,31 @@ function notificationHandler(notification) {
     // 监听文本为 "考勤结果" 的通知 
     if ((bundleId == BUNDLE_ID_MAIL || bundleId == BUNDLE_ID_XMSF) && (text == "Re: 考勤结果" || text == "考勤结果")) {
         threads.shutDownAll()
-        sendEmail("考勤结果", getStorageData("dingding", "clockResult"))
+        threads.start(function(){
+            sendEmail("考勤结果", getStorageData("dingding", "clockResult"))
+        })
         return;
     }
 
     // 监听文本为 "暂停" 的通知 
     if ((bundleId == BUNDLE_ID_MAIL || bundleId == BUNDLE_ID_XMSF) && text == "暂停") {
-        threads.shutDownAll()
         suspend = true
-        console.log("暂停定时打卡")
-        sendEmail("操作成功", "已暂停定时打卡功能")
+        console.warn("暂停定时打卡")
+        threads.shutDownAll()
+        threads.start(function(){
+            sendEmail("操作成功", "已暂停定时打卡功能")
+        })
         return;
     }
 
     // 监听文本为 "恢复" 的通知 
     if ((bundleId == BUNDLE_ID_MAIL || bundleId == BUNDLE_ID_XMSF) && text == "恢复") {
-        threads.shutDownAll()
         suspend = false
-        console.log("恢复定时打卡")
-        sendEmail("操作成功", "已恢复定时打卡功能")
+        console.warn("恢复定时打卡")
+        threads.shutDownAll()
+        threads.start(function(){
+            sendEmail("操作成功", "已恢复定时打卡功能")
+        })
         return;
     }
 
@@ -153,9 +156,11 @@ function notificationHandler(notification) {
     
     // 监听钉钉返回的考勤结果
     if (bundleId == BUNDLE_ID_DD && text.indexOf("考勤打卡") >= 0) { 
-        threads.shutDownAll()
         setStorageData("dingding", "clockResult", text)
-        sendEmail("考勤结果", text)
+        threads.shutDownAll()
+        threads.start(function(){
+            sendEmail("考勤结果", text)
+        })
         return;
     }
 }
@@ -244,7 +249,7 @@ function brightScreen() {
     device.wakeUpIfNeeded() // 唤醒设备
     device.keepScreenOn()   // 保持亮屏
 
-    console.log("设备已唤醒")
+    console.info("设备已唤醒")
     
     sleep(1000) // 等待屏幕亮起
     if (!device.isScreenOn()) {
@@ -268,7 +273,7 @@ function unlockScreen() {
     home()
     sleep(1000) // 等待返回动画完成
     
-    console.log("屏幕已解锁")
+    console.info("屏幕已解锁")
 }
 
 
@@ -329,7 +334,7 @@ function signIn() {
     handleUpdata()  // 处理更新弹窗
 
     if (id("et_pwd_login").exists()) {
-        console.log("账号未登录")
+        console.info("账号未登录")
 
         var account = id("et_phone_input").findOne()
         account.setText(ACCOUNT)
@@ -416,7 +421,7 @@ function attendKaoqin(){
  */
 function clockIn() {
 
-    console.info("上班打卡...")
+    console.log("上班打卡...")
     
     if (null != textContains("已打卡").findOne(1000)) {
         toastLog("已打卡")
@@ -456,10 +461,6 @@ function clockIn() {
     sleep(1000)
 
     handleLate() // 处理迟到打卡
-    
-    if (null != textContains("打卡成功").findOne(3000)) {
-        toastLog("打卡成功")
-    }
 
     home()
     sleep(1000)
@@ -506,10 +507,6 @@ function clockOut() {
     if (null != textContains("早退打卡").clickable(true).findOne(1000)) {
         className("android.widget.Button").text("早退打卡").clickable(true).findOnce().parent().click()
         console.warn("早退打卡")
-    }
-    
-    if (null != textContains("打卡成功").findOne(3000)) {
-        toastLog("打卡成功")
     }
 
     home()
@@ -642,14 +639,8 @@ PC和手机连接到同一网络，使用 VSCode + Auto.js插件（在扩展中�
 - 虽然脚本可执行完整的打卡步骤，但推荐开启钉钉的极速打卡功能，在钉钉启动时即可完成打卡，应把后续的步骤视为极速打卡失败后的保险措施
 
 ## 更新日志
-### 2021-01-27
-临时处理一个AutoJs监听问题：在子线程开始前，调用`threads.shutDownAll()`，避免线程被重复开启。
-
-AutoJs长时间运行后可能会出现这个问题（大概10天左右）
-
-具体表现为：通知不能被正常监听，若停止并重新运行脚本，一条通知会被多次打印
-
-当出现这个情况时，需重启AutoJs或重启手机
+### 2021-02-07
+优化：防止监听事件被耗时操作阻塞。
 
 ### 2021-01-15
 
