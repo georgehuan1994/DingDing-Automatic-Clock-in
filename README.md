@@ -459,7 +459,7 @@ function clockIn() {
     }
 
     console.log("等待连接到考勤机...")
-    textContains(NAME_OF_ATTENDANCE_MACHINE).waitFor(6000)
+    sleep(2000)
     
     if (null != textContains("未连接").findOne(1000)) {
         console.error("未连接考勤机，重新进入考勤界面！")
@@ -514,7 +514,7 @@ function clockOut() {
     }
 
     console.log("等待连接到考勤机...")
-    textContains(NAME_OF_ATTENDANCE_MACHINE).waitFor(6000)
+    sleep(2000)
     
     if (null != textContains("未连接").findOne(1000)) {
         console.error("未连接考勤机，重新进入考勤界面！")
