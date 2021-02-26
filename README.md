@@ -3,7 +3,7 @@
 <img width="300" src="https://github.com/georgehuan1994/DingDing-Automatic-Clock-in/blob/master/图片/Screenshot_2020-10-29-19-29-35-361_org.autojs.autojs.jpg"/> <img width="300"  src="https://github.com/georgehuan1994/DingDing-Automatic-Clock-in/blob/master/图片/Scrennshot_20201231094431.png"/>
 
 ## 简介
-钉钉自动打卡、远程打卡脚本，基于AutoJs，免Root
+钉钉自动打卡、远程打卡脚本，针对蓝牙考勤机，基于AutoJs，免Root
 
 ## 功能
 - 定时自动打卡
@@ -18,40 +18,12 @@
 ## 原理
 在AutoJs脚本中监听本机通知，并在Tasker中创建定时任务发出打卡通知，或在另一设备上发送消息到本机，即可触发脚本中的打卡进程，实现定时打卡和远程打卡。
 
-## 声明
-
-此仓库及脚本仅供学习交流，欢迎转载。旨在让人们关注996制度的存在和非法性，并尝试改变这种现象。
-
-根据1994年第八届全国人大常委会通过和2018年第十三届全国人大常委会修正的《中华人民共和国劳动法》规定，劳动者**每日工作时间不超过8小时，平均每周工作时间不超过44小时，而996工作制每周至少要工作72个小时**，远超法律标准，因此996工作制度违反劳动法。
-
-而钉钉允许企业管理者违反法律，非法排班！  
-
-<blockquote>
-
-**第三十六条**　国家实行劳动者每日工作时间不超过八小时、平均每周工作时间不超过四十四小时的工时制度。
-
-**第四十一条**　用人单位由于生产经营需要，经与工会和劳动者协商后可以延长工作时间，一般每日不得超过一小时；因特殊原因需要延长工作时间的，在保障劳动者身体健康的条件下延长工作时间每日不得超过三小时，但是每月不得超过三十六小时。
-
-**第四十四条**　有下列情形之一的，用人单位应当按照下列标准支付高于劳动者正常工作时间工资的工资报酬：
-
-（一）安排劳动者延长工作时间的，支付不低于工资的百分之一百五十的工资报酬；  
-（二）休息日安排劳动者工作又不能安排补休的，支付不低于工资的百分之二百的工资报酬；  
-（三）法定休假日安排劳动者工作的，支付不低于工资的百分之三百的工资报酬。  
-
-**第九十条**　用人单位违反本法规定，延长劳动者工作时间的，由劳动行政部门给予警告，责令改正，并可以处以罚款。
-
-**第九十一条**　用人单位有下列侵害劳动者合法权益情形之一的，由劳动行政部门责令支付劳动者的工资报酬、经济补偿，并可以责令支付赔偿金：
-
-（二）拒不支付劳动者延长工作时间工资报酬的；
-
-</blockquote>
-
 ## 脚本
 ```javascript
 /*
  * @Author: George Huan
  * @Date: 2020-08-03 09:30:30
- * @LastEditTime: 2021-02-07 13:44:57
+ * @LastEditTime: 2021-02-26 14:58:38
  * @Description: DingDing-Automatic-Clock-in (Run on AutoJs)
  * @URL: https://github.com/georgehuan1994/DingDing-Automatic-Clock-in
  */
@@ -121,13 +93,12 @@ function notificationHandler(n) {
     var abstract = n.tickerText          // 获取通知摘要
     var text = n.getText()               // 获取通知文本
 
-    // 过滤通知
+    // 过滤BundleId白名单之外的应用所发出的通知
     if (!filterNotification(bundleId, abstract, text)) { 
         return;
     }
 
-    // 监听摘要为 "定时打卡" 的通知
-    // 不一定要从 Tasker 中发出通知，日历、定时器等App均可实现
+    // 监听摘要为 "定时打卡" 的通知，不一定要从 Tasker 中发出通知，日历、定时器等App均可实现
     if (abstract == "定时打卡" && !suspend) { 
         needWaiting = true
         threads.shutDownAll()
@@ -317,13 +288,18 @@ function stopApp() {
 
     // No Root
     app.openAppSetting(BUNDLE_ID_DD)
-    let btn_finish = textMatches(/(.*结束.*)|(.*停止.*)|(.*运行.*)/).clickable(true).findOne() // 直到找到 "结束运行" 按钮，并点击
+    let btn_finish = textMatches(/(.*结束.*)|(.*停止.*)/).clickable(true).findOne() // 直到找到 "结束运行" 按钮，并点击
     if (btn_finish.enabled()) {
         btn_finish.click()
-
-        btn_sure = textMatches("确定").clickable(true).findOne(1000)
-        btn_sure.click() // 找到 "确定" 按钮，并点击
-
+        
+        if (null != textMatches("确定").clickable(true).findOne(1000)) { // 点击弹出的对话框中的 "确定" 按钮
+            btn_sure = textMatches("确定").clickable(true).findOnce()
+            btn_sure.click() 
+        }
+        if (null != descMatches("确定").clickable(true).findOne(1000)) {
+            btn_sure = textMatches("确定").clickable(true).findOnce()
+            btn_sure.click() 
+        }
         console.info(app.getAppName(BUNDLE_ID_DD) + "已被关闭")
     } 
     else {
@@ -634,7 +610,7 @@ AutoJs是安卓平台上的JavaScript自动化工具 https://github.com/hyb1996/
 
 官方文档：https://hyb1996.github.io/AutoJs-Docs/#/?id=%E7%BB%BC%E8%BF%B0
 
-PC和手机连接到同一网络，使用 VSCode + Auto.js插件（在扩展中心搜索 "hyb1996"） 可方便的调试并将脚本保存到手机上
+PC和手机连接到同一网络，使用 VSCode + Auto.js插件（在扩展中心搜索 "hyb1996"） 就能调试脚本并保存到手机上
 
 ### Tasker
 <img width="270" height="585" src="https://github.com/georgehuan1994/DingDing-Automatic-Clock-in/blob/master/图片/截图_004.jpg"/>
@@ -646,8 +622,9 @@ PC和手机连接到同一网络，使用 VSCode + Auto.js插件（在扩展中�
 或者[下载任务和配置文件](https://github.com/georgehuan1994/DingDing-Automatic-Clock-in/tree/master/Tasker配置 "下载配置")，导入到Tasker中使用
 
 #### 导入方法
-长按 菜单栏-配置文件，导入"上班打卡.prf.xml" 和 "下班打卡.prf.xml" 
-长按 菜单栏-任务，导入"发送通知.tsk.xml"。在任务编辑界面左下方有一个三角形的播放按钮，点击即可发送通知，方便调试。
+- 长按 菜单栏-配置文件，导入"上班打卡.prf.xml" 和 "下班打卡.prf.xml" 
+
+- 长按 菜单栏-任务，导入"发送通知.tsk.xml"。（在任务编辑界面左下方有一个三角形的播放按钮，点击即可发送通知，方便调试。）
 
 ### 远程打卡
 回复标题为 "打卡" 的邮件，即可触发打卡进程
@@ -740,6 +717,34 @@ function attendKaoqin(){
 ### 2020-09-02
 
 钉钉工作台界面改版（新增考勤打卡的快捷入口）。无法通过 "考勤打卡" 相关属性获取控件，改为使用 "去打卡" 文本获取按钮。若找不到 "去打卡" 按钮，则直接点击 "考勤打卡" 的屏幕坐标
+
+## 声明
+
+此仓库及脚本仅供学习交流，欢迎转载。旨在让人们关注996制度的存在和非法性，并尝试改变这种现象。
+
+根据1994年第八届全国人大常委会通过和2018年第十三届全国人大常委会修正的《中华人民共和国劳动法》规定，劳动者**每日工作时间不超过8小时，平均每周工作时间不超过44小时，而996工作制每周至少要工作72个小时**，远超法律标准，因此996工作制度违反劳动法。
+
+而钉钉却允许企业管理者违反法律，非法排班！  
+
+<blockquote>
+
+**第三十六条**　国家实行劳动者每日工作时间不超过八小时、平均每周工作时间不超过四十四小时的工时制度。
+
+**第四十一条**　用人单位由于生产经营需要，经与工会和劳动者协商后可以延长工作时间，一般每日不得超过一小时；因特殊原因需要延长工作时间的，在保障劳动者身体健康的条件下延长工作时间每日不得超过三小时，但是每月不得超过三十六小时。
+
+**第四十四条**　有下列情形之一的，用人单位应当按照下列标准支付高于劳动者正常工作时间工资的工资报酬：
+
+（一）安排劳动者延长工作时间的，支付不低于工资的百分之一百五十的工资报酬；  
+（二）休息日安排劳动者工作又不能安排补休的，支付不低于工资的百分之二百的工资报酬；  
+（三）法定休假日安排劳动者工作的，支付不低于工资的百分之三百的工资报酬。  
+
+**第九十条**　用人单位违反本法规定，延长劳动者工作时间的，由劳动行政部门给予警告，责令改正，并可以处以罚款。
+
+**第九十一条**　用人单位有下列侵害劳动者合法权益情形之一的，由劳动行政部门责令支付劳动者的工资报酬、经济补偿，并可以责令支付赔偿金：
+
+（二）拒不支付劳动者延长工作时间工资报酬的；
+
+</blockquote>
 
 ---
 
