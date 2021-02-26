@@ -645,6 +645,10 @@ PC和手机连接到同一网络，使用 VSCode + Auto.js插件（在扩展中�
 
 或者[下载任务和配置文件](https://github.com/georgehuan1994/DingDing-Automatic-Clock-in/tree/master/Tasker配置 "下载配置")，导入到Tasker中使用
 
+#### 导入方法
+长按 菜单栏-配置文件，导入"上班打卡.prf.xml" 和 "下班打卡.prf.xml" 
+长按 菜单栏-任务，导入"发送通知.tsk.xml"。在任务编辑界面左下方有一个三角形的播放按钮，点击即可发送通知，方便调试。
+
 ### 远程打卡
 回复标题为 "打卡" 的邮件，即可触发打卡进程
 
