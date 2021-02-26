@@ -1,7 +1,7 @@
 /*
  * @Author: George Huan
  * @Date: 2020-08-03 09:30:30
- * @LastEditTime: 2021-02-07 13:44:57
+ * @LastEditTime: 2021-02-26 14:58:38
  * @Description: DingDing-Automatic-Clock-in (Run on AutoJs)
  * @URL: https://github.com/georgehuan1994/DingDing-Automatic-Clock-in
  */
@@ -71,13 +71,12 @@ function notificationHandler(n) {
     var abstract = n.tickerText          // 获取通知摘要
     var text = n.getText()               // 获取通知文本
 
-    // 过滤通知
+    // 过滤BundleId白名单之外的应用所发出的通知
     if (!filterNotification(bundleId, abstract, text)) { 
         return;
     }
 
-    // 监听摘要为 "定时打卡" 的通知
-    // 不一定要从 Tasker 中发出通知，日历、定时器等App均可实现
+    // 监听摘要为 "定时打卡" 的通知，不一定要从 Tasker 中发出通知，日历、定时器等App均可实现
     if (abstract == "定时打卡" && !suspend) { 
         needWaiting = true
         threads.shutDownAll()
@@ -267,13 +266,18 @@ function stopApp() {
 
     // No Root
     app.openAppSetting(BUNDLE_ID_DD)
-    let btn_finish = textMatches(/(.*结束.*)|(.*停止.*)|(.*运行.*)/).clickable(true).findOne() // 直到找到 "结束运行" 按钮，并点击
+    let btn_finish = textMatches(/(.*结束.*)|(.*停止.*)/).clickable(true).findOne() // 直到找到 "结束运行" 按钮，并点击
     if (btn_finish.enabled()) {
         btn_finish.click()
-
-        btn_sure = textMatches("确定").clickable(true).findOne(1000)
-        btn_sure.click() // 找到 "确定" 按钮，并点击
-
+        
+        if (null != textMatches("确定").clickable(true).findOne(1000)) { // 点击弹出的对话框中的 "确定" 按钮
+            btn_sure = textMatches("确定").clickable(true).findOnce()
+            btn_sure.click() 
+        }
+        if (null != descMatches("确定").clickable(true).findOne(1000)) {
+            btn_sure = textMatches("确定").clickable(true).findOnce()
+            btn_sure.click() 
+        }
         console.info(app.getAppName(BUNDLE_ID_DD) + "已被关闭")
     } 
     else {
