@@ -275,7 +275,7 @@ function stopApp() {
             btn_sure.click() 
         }
         if (null != descMatches("确定").clickable(true).findOne(1000)) {
-            btn_sure = textMatches("确定").clickable(true).findOnce()
+            btn_sure = descMatches("确定").clickable(true).findOnce()
             btn_sure.click() 
         }
         console.info(app.getAppName(BUNDLE_ID_DD) + "已被关闭")
