@@ -1,7 +1,7 @@
 /*
  * @Author: George Huan
  * @Date: 2020-08-03 09:30:30
- * @LastEditTime: 2021-02-26 14:58:38
+ * @LastEditTime: 2021-03-05 16:58:06
  * @Description: DingDing-Automatic-Clock-in (Run on AutoJs)
  * @URL: https://github.com/georgehuan1994/DingDing-Automatic-Clock-in
  */
@@ -21,7 +21,7 @@ const NAME_OF_ATTENDANCE_MACHINE = "前台大门" // 考勤机名称
 const LOWER_BOUND = 1 * 60 * 1000 // 最小等待时间：1min
 const UPPER_BOUND = 5 * 60 * 1000 // 最大等待时间：5min
 
-// 执行时的屏幕亮度（0-255）
+// 执行时的屏幕亮度（0-255），需要"修改系统设置"权限
 const SCREEN_BRIGHTNESS = 20    
 
 // 是否过滤通知
@@ -32,7 +32,7 @@ const BUNDLE_ID_WHITE_LIST = [BUNDLE_ID_DD,BUNDLE_ID_XMSF,BUNDLE_ID_MAIL,BUNDLE_
 
 const WEEK_DAY = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday",]
 
-// 公司的钉钉CorpId，获取方法见更新日志，可留空
+// 公司的钉钉CorpId，获取方法见 2020-09-24 更新日志。如果只加入了一家公司，可以不填
 const CORP_ID = "" 
 
 
@@ -87,7 +87,7 @@ function notificationHandler(n) {
     }
     
     // 监听文本为 "打卡" 的通知
-    if ((bundleId == BUNDLE_ID_MAIL || bundleId == BUNDLE_ID_XMSF) && (text == "Re: 打卡" || text == "打卡")) { 
+    if ((bundleId == BUNDLE_ID_MAIL || bundleId == BUNDLE_ID_XMSF) && text == "打卡") { 
         needWaiting = false
         threads.shutDownAll()
         threads.start(function(){
@@ -159,15 +159,13 @@ function doClock() {
     signIn()            // 自动登录
     handleUpdata()      // 处理更新
     handleLate()        // 处理迟到
+    attendKaoqin()      // 考勤打卡
 
-    attendKaoqin()      // 使用 URL Scheme 进入考勤界面
-
-    if (currentDate.getHours() <= 12) {
-        clockIn()       // 上班打卡
-    }
-    else {
-        clockOut()      // 下班打卡
-    }
+    if (currentDate.getHours() <= 12) 
+    clockIn()           // 上班打卡
+    else 
+    clockOut()          // 下班打卡
+    
     lockScreen()        // 关闭屏幕
 }
 
@@ -405,6 +403,19 @@ function clockIn() {
 
     console.log("上班打卡...")
     
+    if (null != textContains("休息").findOne(1000)) {
+        console.info("textContains：今日休息")
+        home()
+        sleep(1000)
+        return;
+    }
+    if (null != descContains("休息").findOne(1000)) {
+        console.info("descContains：今日休息")
+        home()
+        sleep(1000)
+        return;
+    }
+
     if (null != textContains("已打卡").findOne(1000)) {
         toastLog("已打卡")
         home()
@@ -455,6 +466,19 @@ function clockIn() {
 function clockOut() {
 
     console.log("下班打卡...")
+
+    if (null != textContains("休息").findOne(1000)) {
+        console.info("textContains：今日休息")
+        home()
+        sleep(1000)
+        return;
+    }
+    if (null != descContains("休息").findOne(1000)) {
+        console.info("descContains：今日休息")
+        home()
+        sleep(1000)
+        return;
+    }
 
     if (null != textContains("更新打卡").findOne(1000)) {
         if (null != textContains("早退").findOne(1000)) {
