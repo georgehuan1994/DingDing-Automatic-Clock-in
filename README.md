@@ -3,12 +3,12 @@
 <img width="300" src="https://github.com/georgehuan1994/DingDing-Automatic-Clock-in/blob/master/图片/Screenshot_2020-10-29-19-29-35-361_org.autojs.autojs.jpg"/> <img width="300"  src="https://github.com/georgehuan1994/DingDing-Automatic-Clock-in/blob/master/图片/Scrennshot_20201231094431.png"/>
 
 ## 简介
-钉钉自动打卡、远程打卡脚本，针对蓝牙考勤机，基于AutoJs，免Root
+基于AutoJs的钉钉自动打卡、远程打卡脚本，可用于蓝牙考勤机
 
 ## 功能
-- 定时自动打卡
-- 远程指令打卡
-- 自动回复打卡结果
+- 定时打卡
+- 远程打卡
+- 邮件回复打卡结果
 
 ## 工具
 - AutoJs
@@ -16,7 +16,7 @@
 - 网易邮箱大师
 
 ## 原理
-在AutoJs脚本中监听本机通知，并在Tasker中创建定时任务发出打卡通知，或在另一设备上发送消息到本机，即可触发脚本中的打卡进程，实现定时打卡和远程打卡。
+在AutoJs脚本中监听本机通知，在Tasker中创建定时任务发出打卡通知，或在另一设备上发送消息到本机，即可触发脚本中的打卡进程，实现定时打卡和远程打卡。
 
 ## 脚本
 ```javascript
@@ -109,7 +109,7 @@ function notificationHandler(n) {
     }
     
     // 监听文本为 "打卡" 的通知
-    if ((bundleId == BUNDLE_ID_MAIL || bundleId == BUNDLE_ID_XMSF) && (text == "Re: 打卡" || text == "打卡")) { 
+    if ((bundleId == BUNDLE_ID_MAIL || bundleId == BUNDLE_ID_XMSF) && text == "打卡") { 
         needWaiting = false
         threads.shutDownAll()
         threads.start(function(){
@@ -181,15 +181,13 @@ function doClock() {
     signIn()            // 自动登录
     handleUpdata()      // 处理更新
     handleLate()        // 处理迟到
+    attendKaoqin()      // 考勤打卡
 
-    attendKaoqin()      // 使用 URL Scheme 进入考勤界面
-
-    if (currentDate.getHours() <= 12) {
-        clockIn()       // 上班打卡
-    }
-    else {
-        clockOut()      // 下班打卡
-    }
+    if (currentDate.getHours() <= 12) 
+    clockIn()           // 上班打卡
+    else 
+    clockOut()          // 下班打卡
+    
     lockScreen()        // 关闭屏幕
 }
 
@@ -627,14 +625,14 @@ PC和手机连接到同一网络，使用 VSCode + Auto.js插件（在扩展中�
 - 长按 菜单栏-任务，导入"发送通知.tsk.xml"。（在任务编辑界面左下方有一个三角形的播放按钮，点击即可发送通知，方便调试。）
 
 ### 远程打卡
-回复标题为 "打卡" 的邮件，即可触发打卡进程
+- 回复标题为 "打卡" 的邮件，即可触发打卡进程
 
-回复标题为 "考勤结果" 的邮件，即可查询最新一次打卡结果
+- 回复标题为 "考勤结果" 的邮件，即可查询最新一次打卡结果
 
 ### 暂停/恢复定时打卡
-回复标题为 "暂停" 的邮件，即可暂停定时打卡功能（仅暂停定时打卡，不影响远程打卡功能）
+- 回复标题为 "暂停" 的邮件，即可暂停定时打卡功能（仅暂停定时打卡，不影响远程打卡功能）
 
-回复标题为 "恢复" 的邮件，即可恢复定时打卡功能
+- 回复标题为 "恢复" 的邮件，即可恢复定时打卡功能
 
 ### 注意事项
 - 首次启动AutoJs时，需要为其开启无障碍权限
