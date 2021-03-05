@@ -23,7 +23,7 @@
 /*
  * @Author: George Huan
  * @Date: 2020-08-03 09:30:30
- * @LastEditTime: 2021-02-26 14:58:38
+ * @LastEditTime: 2021-03-05 16:58:06
  * @Description: DingDing-Automatic-Clock-in (Run on AutoJs)
  * @URL: https://github.com/georgehuan1994/DingDing-Automatic-Clock-in
  */
@@ -43,7 +43,7 @@ const NAME_OF_ATTENDANCE_MACHINE = "前台大门" // 考勤机名称
 const LOWER_BOUND = 1 * 60 * 1000 // 最小等待时间：1min
 const UPPER_BOUND = 5 * 60 * 1000 // 最大等待时间：5min
 
-// 执行时的屏幕亮度（0-255）
+// 执行时的屏幕亮度（0-255），需要"修改系统设置"权限
 const SCREEN_BRIGHTNESS = 20    
 
 // 是否过滤通知
@@ -54,7 +54,7 @@ const BUNDLE_ID_WHITE_LIST = [BUNDLE_ID_DD,BUNDLE_ID_XMSF,BUNDLE_ID_MAIL,BUNDLE_
 
 const WEEK_DAY = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday",]
 
-// 公司的钉钉CorpId，获取方法见更新日志，可留空
+// 公司的钉钉CorpId，获取方法见 2020-09-24 更新日志。如果只加入了一家公司，可以不填
 const CORP_ID = "" 
 
 
@@ -425,6 +425,19 @@ function clockIn() {
 
     console.log("上班打卡...")
     
+    if (null != textContains("休息").findOne(1000)) {
+        console.info("textContains：今日休息")
+        home()
+        sleep(1000)
+        return;
+    }
+    if (null != descContains("休息").findOne(1000)) {
+        console.info("descContains：今日休息")
+        home()
+        sleep(1000)
+        return;
+    }
+
     if (null != textContains("已打卡").findOne(1000)) {
         toastLog("已打卡")
         home()
@@ -475,6 +488,19 @@ function clockIn() {
 function clockOut() {
 
     console.log("下班打卡...")
+
+    if (null != textContains("休息").findOne(1000)) {
+        console.info("textContains：今日休息")
+        home()
+        sleep(1000)
+        return;
+    }
+    if (null != descContains("休息").findOne(1000)) {
+        console.info("descContains：今日休息")
+        home()
+        sleep(1000)
+        return;
+    }
 
     if (null != textContains("更新打卡").findOne(1000)) {
         if (null != textContains("早退").findOne(1000)) {
@@ -602,11 +628,11 @@ function delStorageData(name, key) {
 
 ## 使用方法
 ### AutoJs
-下载：[Auto.js 4.1.1a Alpha2-armeabi-v7a-release](https://www.lanzous.com/i56aexi "Auto.js 4.1.1a Alpha2-armeabi-v7a-release")
-
 AutoJs是安卓平台上的JavaScript自动化工具 https://github.com/hyb1996/Auto.js
 
 官方文档：https://hyb1996.github.io/AutoJs-Docs/#/?id=%E7%BB%BC%E8%BF%B0
+
+下载：[Auto.js 4.1.1a Alpha2-armeabi-v7a-release](https://www.lanzous.com/i56aexi "Auto.js 4.1.1a Alpha2-armeabi-v7a-release")
 
 PC和手机连接到同一网络，使用 VSCode + Auto.js插件（在扩展中心搜索 "hyb1996"） 就能调试脚本并保存到手机上
 
@@ -620,9 +646,9 @@ PC和手机连接到同一网络，使用 VSCode + Auto.js插件（在扩展中�
 或者[下载任务和配置文件](https://github.com/georgehuan1994/DingDing-Automatic-Clock-in/tree/master/Tasker配置 "下载配置")，导入到Tasker中使用
 
 #### 导入方法
-- 长按 菜单栏-配置文件，导入"上班打卡.prf.xml" 和 "下班打卡.prf.xml" 
+1. 长按 菜单栏-任务，导入"发送通知.tsk.xml"。（在任务编辑界面左下方有一个三角形的播放按钮，点击即可发送通知，方便调试。）
 
-- 长按 菜单栏-任务，导入"发送通知.tsk.xml"。（在任务编辑界面左下方有一个三角形的播放按钮，点击即可发送通知，方便调试。）
+2. 长按 菜单栏-配置文件，导入"上班打卡.prf.xml" 和 "下班打卡.prf.xml" 
 
 ### 远程打卡
 - 回复标题为 "打卡" 的邮件，即可触发打卡进程
@@ -634,14 +660,14 @@ PC和手机连接到同一网络，使用 VSCode + Auto.js插件（在扩展中�
 
 - 回复标题为 "恢复" 的邮件，即可恢复定时打卡功能
 
-### 注意事项
+## 注意事项
 - 首次启动AutoJs时，需要为其开启无障碍权限
 
-- 此脚本会自动适配不同分辨率的设备，但AutoJs对平板的兼容性不佳，不推荐在平板设备上使用
+- 运行脚本前，请在AutoJs菜单栏中（从屏幕左边划出），开启“通知读取权限”
 
-- AutoJs、Tasker可息屏运行，但需要在系统设置中开启通知亮屏
+- AutoJs、Tasker可息屏运行，需要在系统设置中开启通知亮屏
 
-- 为保证AutoJs、Tasker进程不被系统清理，可调整它们的电池管理策略、加入管理应用的白名单，为其开启前台服务、添加应用锁
+- 为保证AutoJs、Tasker进程不被系统清理，可调整它们的电池管理策略、加入管理应用的白名单，为其开启前台服务、添加应用锁...
 
 - 虽然脚本可执行完整的打卡步骤，但推荐开启钉钉的极速打卡功能，在钉钉启动时即可完成打卡，应把后续的步骤视为极速打卡失败后的保险措施
 
@@ -675,13 +701,13 @@ PC和手机连接到同一网络，使用 VSCode + Auto.js插件（在扩展中�
 
 ### 2020-09-24
 
-优化：若无法进入考勤打卡界面，则使用URL Scheme直接拉起考勤打卡界面
+优化：若找不到考勤按钮，则使用URL Scheme直接拉起考勤打卡界面
 
 ```javascript
 function attendKaoqin(){
     var a = app.intent({
         action: "VIEW",
-        data: "dingtalk://dingtalkclient/page/link?url=https://attend.dingtalk.com/attend/index.html" // 在后面加上 ?CorpId=************
+        data: "dingtalk://dingtalkclient/page/link?url=https://attend.dingtalk.com/attend/index.html"
       });
       app.startActivity(a);
       sleep(5000)
@@ -694,11 +720,11 @@ function attendKaoqin(){
 
 2. 发送消息 “打卡” ，点击 “立即打卡” 
 
-3. 弹出一个二维码。此二维码就是拉起考勤打卡界面的 URL Scheme ，用自带的相机或其他应用扫描，并在浏览器中打开，即可获得完整URL Scheme
+3. 弹出一个二维码。此二维码就是拉起考勤打卡界面的 URL，用自带的相机或其他应用扫描，并在浏览器中打开，即可获得完整URL
 
-4. 无需使用完整URL，将`?CorpId=***` 拼接到 `dingtalk://dingtalkclient/page/link?url=https://attend.dingtalk.com/attend/index.html` 的后面
+4. 观察获取到的URL，找到 `CorpId=xxxxxxxxxxxxxxxxxxx` ，将CorpId的值填写到的脚本开头的CORP_ID这个常量中
 
-5. 仅使用 `dingtalk://dingtalkclient/page/link?url=https://attend.dingtalk.com/attend/index.html`，也可以拉起旧版打卡界面，钉钉会自动获取主企业的CorpId，并跳转到新版打卡界面
+5. 仅使用 `dingtalk://dingtalkclient/page/link?url=https://attend.dingtalk.com/attend/index.html`，也可以拉起旧版打卡界面，钉钉会自动获取企业的CorpId。如果加入了多个组织，且没有填写CorpId，则在拉起考勤界面时会弹出一个选择组织的对话框。
 
 ### 2020-09-11
 
