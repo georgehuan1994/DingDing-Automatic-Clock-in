@@ -1,7 +1,7 @@
 /*
  * @Author: George Huan
  * @Date: 2020-08-03 09:30:30
- * @LastEditTime: 2021-03-05 16:58:06
+ * @LastEditTime: 2021-03-09 10:59:30
  * @Description: DingDing-Automatic-Clock-in (Run on AutoJs)
  * @URL: https://github.com/georgehuan1994/DingDing-Automatic-Clock-in
  */
@@ -35,6 +35,7 @@ const WEEK_DAY = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","S
 // 公司的钉钉CorpId，获取方法见 2020-09-24 更新日志。如果只加入了一家公司，可以不填
 const CORP_ID = "" 
 
+const ACTION_LOCK_SCREEN = "autojs.intent.action.LOCK_SCREEN"
 
 // =================== ↓↓↓ 主线程：监听通知 ↓↓↓ ====================
 
@@ -144,7 +145,7 @@ function notificationHandler(n) {
 
 
 /**
- * @description 打卡主程序 
+ * @description 打卡流程
  */
 function doClock() {
 
@@ -154,10 +155,9 @@ function doClock() {
 
     brightScreen()      // 唤醒屏幕
     unlockScreen()      // 解锁屏幕
-    stopApp()           // 结束钉钉
+    // stopApp()        // 结束钉钉
     holdOn()            // 随机等待
     signIn()            // 自动登录
-    handleUpdata()      // 处理更新
     handleLate()        // 处理迟到
     attendKaoqin()      // 考勤打卡
 
@@ -171,7 +171,7 @@ function doClock() {
 
 
 /**
- * @description 发邮件主程序 
+ * @description 发邮件流程
  * @param {*} title 邮件主题
  * @param {*} message 邮件正文
  */
@@ -281,6 +281,7 @@ function stopApp() {
     else {
         console.info(app.getAppName(BUNDLE_ID_DD) + "未在运行")
     }
+    
     sleep(1000)
     home()
     sleep(1000)
@@ -311,7 +312,6 @@ function signIn() {
     console.log("正在启动" + app.getAppName(BUNDLE_ID_DD) + "...")
     
     sleep(10000)    // 等待钉钉启动
-    handleUpdata()  // 处理更新弹窗
 
     if (id("et_pwd_login").exists()) {
         console.info("账号未登录")
@@ -329,28 +329,14 @@ function signIn() {
         console.log("正在登陆")
     }
     else {
-        if (id("menu_tel").exists()) {
-            console.info("账号已登录，当前位于消息页面")
+        if (currentPackage() == BUNDLE_ID_DD) {
+            console.info("账号已登录")
             sleep(1000)
-        } 
+        }
         else {
-            console.warn("未检测到消息页面，重试")
+            console.warn("未检测到活动页面，重试")
             signIn()
         }
-    }
-}
-
-
-/**
- * @description 处理钉钉更新弹窗
- */
-function handleUpdata(){
-
-    if (null != textMatches(/(.*暂不更新.*)/).clickable(true).findOne(3000)) {
-        btn_dontUpdate = textMatches("暂不更新").clickable(true).findOnce()
-        btn_dontUpdate.click()
-        sleep(1000)
-        console.error("发现更新弹窗！请留意新版本的布局变化！")
     }
 }
 
@@ -362,6 +348,11 @@ function handleLate(){
    
     if (null != textMatches(/(.*迟到打卡.*)/).clickable(true).findOne(1000)) {
         btn_late = textMatches("迟到打卡").clickable(true).findOnce() 
+        btn_late.click()
+        console.warn("迟到打卡")
+    }
+    if (null != descMatches(/(.*迟到打卡.*)/).clickable(true).findOne(1000)) {
+        btn_late = descMatches("迟到打卡").clickable(true).findOnce() 
         btn_late.click()
         console.warn("迟到打卡")
     }
@@ -402,7 +393,7 @@ function attendKaoqin(){
 function clockIn() {
 
     console.log("上班打卡...")
-    
+
     if (null != textContains("休息").findOne(1000)) {
         console.info("textContains：今日休息")
         home()
@@ -425,7 +416,7 @@ function clockIn() {
 
     console.log("等待连接到考勤机...")
     sleep(2000)
-    
+
     if (null != textContains("未连接").findOne(1000)) {
         console.error("未连接考勤机，重新进入考勤界面！")
         attendKaoqin()
@@ -436,9 +427,7 @@ function clockIn() {
     sleep(1000)
 
     if (null != textMatches(/(.*上班打卡.*)/).clickable(true).findOne(1000)) {
-        // btn_clockin = textMatches("上班打卡").clickable(true).findOnce().parent().parent().click()
-        // btn_clockin = textMatches("上班打卡").clickable(true).findOnce().parent().click()
-        btn_clockin = textMatches("上班打卡").clickable(true).findOnce();
+        btn_clockin = textMatches("上班打卡").clickable(true).findOnce()
         btn_clockin.click()
         console.log("按下打卡按钮")
         sleep(1000)
@@ -450,11 +439,11 @@ function clockIn() {
     click(Math.floor(device.width / 2),Math.floor(device.height * 0.563))
     sleep(200)
     click(Math.floor(device.width / 2),Math.floor(device.height * 0.566))
-    console.log("使用坐标按下打卡按钮")
+    console.log("点击打卡按钮坐标")
     sleep(1000)
 
     handleLate() // 处理迟到打卡
-
+    
     home()
     sleep(1000)
 }
@@ -479,7 +468,7 @@ function clockOut() {
         sleep(1000)
         return;
     }
-
+    
     if (null != textContains("更新打卡").findOne(1000)) {
         if (null != textContains("早退").findOne(1000)) {
             toastLog("早退，更新打卡记录")
@@ -514,7 +503,7 @@ function clockOut() {
         className("android.widget.Button").text("早退打卡").clickable(true).findOnce().parent().click()
         console.warn("早退打卡")
     }
-
+    
     home()
     sleep(1000)
 }
@@ -534,7 +523,12 @@ function lockScreen(){
     // Power()
 
     // No Root
-    press(Math.floor(device.width / 2), Math.floor(device.height * 0.973), 1000) // 小米的快捷手势：长按Home键锁屏
+    press(Math.floor(device.width / 2), Math.floor(device.height * 0.973), 1000) //小米的快捷手势：长按Home键锁屏
+    
+    // 万能锁屏方案：向Tasker发送广播，触发系统锁屏动作
+    app.sendBroadcast({
+        action: ACTION_LOCK_SCREEN
+    });
 }
 
 
