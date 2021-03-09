@@ -23,7 +23,7 @@
 /*
  * @Author: George Huan
  * @Date: 2020-08-03 09:30:30
- * @LastEditTime: 2021-03-05 16:58:06
+ * @LastEditTime: 2021-03-09 10:59:30
  * @Description: DingDing-Automatic-Clock-in (Run on AutoJs)
  * @URL: https://github.com/georgehuan1994/DingDing-Automatic-Clock-in
  */
@@ -57,6 +57,7 @@ const WEEK_DAY = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","S
 // 公司的钉钉CorpId，获取方法见 2020-09-24 更新日志。如果只加入了一家公司，可以不填
 const CORP_ID = "" 
 
+const ACTION_LOCK_SCREEN = "autojs.intent.action.LOCK_SCREEN"
 
 // =================== ↓↓↓ 主线程：监听通知 ↓↓↓ ====================
 
@@ -166,7 +167,7 @@ function notificationHandler(n) {
 
 
 /**
- * @description 打卡主程序 
+ * @description 打卡流程
  */
 function doClock() {
 
@@ -176,10 +177,9 @@ function doClock() {
 
     brightScreen()      // 唤醒屏幕
     unlockScreen()      // 解锁屏幕
-    stopApp()           // 结束钉钉
+    // stopApp()        // 结束钉钉
     holdOn()            // 随机等待
     signIn()            // 自动登录
-    handleUpdata()      // 处理更新
     handleLate()        // 处理迟到
     attendKaoqin()      // 考勤打卡
 
@@ -193,7 +193,7 @@ function doClock() {
 
 
 /**
- * @description 发邮件主程序 
+ * @description 发邮件流程
  * @param {*} title 邮件主题
  * @param {*} message 邮件正文
  */
@@ -303,6 +303,7 @@ function stopApp() {
     else {
         console.info(app.getAppName(BUNDLE_ID_DD) + "未在运行")
     }
+    
     sleep(1000)
     home()
     sleep(1000)
@@ -333,7 +334,6 @@ function signIn() {
     console.log("正在启动" + app.getAppName(BUNDLE_ID_DD) + "...")
     
     sleep(10000)    // 等待钉钉启动
-    handleUpdata()  // 处理更新弹窗
 
     if (id("et_pwd_login").exists()) {
         console.info("账号未登录")
@@ -351,28 +351,14 @@ function signIn() {
         console.log("正在登陆")
     }
     else {
-        if (id("menu_tel").exists()) {
-            console.info("账号已登录，当前位于消息页面")
+        if (currentPackage() == BUNDLE_ID_DD) {
+            console.info("账号已登录")
             sleep(1000)
-        } 
+        }
         else {
-            console.warn("未检测到消息页面，重试")
+            console.warn("未检测到活动页面，重试")
             signIn()
         }
-    }
-}
-
-
-/**
- * @description 处理钉钉更新弹窗
- */
-function handleUpdata(){
-
-    if (null != textMatches(/(.*暂不更新.*)/).clickable(true).findOne(3000)) {
-        btn_dontUpdate = textMatches("暂不更新").clickable(true).findOnce()
-        btn_dontUpdate.click()
-        sleep(1000)
-        console.error("发现更新弹窗！请留意新版本的布局变化！")
     }
 }
 
@@ -384,6 +370,11 @@ function handleLate(){
    
     if (null != textMatches(/(.*迟到打卡.*)/).clickable(true).findOne(1000)) {
         btn_late = textMatches("迟到打卡").clickable(true).findOnce() 
+        btn_late.click()
+        console.warn("迟到打卡")
+    }
+    if (null != descMatches(/(.*迟到打卡.*)/).clickable(true).findOne(1000)) {
+        btn_late = descMatches("迟到打卡").clickable(true).findOnce() 
         btn_late.click()
         console.warn("迟到打卡")
     }
@@ -424,7 +415,7 @@ function attendKaoqin(){
 function clockIn() {
 
     console.log("上班打卡...")
-    
+
     if (null != textContains("休息").findOne(1000)) {
         console.info("textContains：今日休息")
         home()
@@ -447,7 +438,7 @@ function clockIn() {
 
     console.log("等待连接到考勤机...")
     sleep(2000)
-    
+
     if (null != textContains("未连接").findOne(1000)) {
         console.error("未连接考勤机，重新进入考勤界面！")
         attendKaoqin()
@@ -458,9 +449,7 @@ function clockIn() {
     sleep(1000)
 
     if (null != textMatches(/(.*上班打卡.*)/).clickable(true).findOne(1000)) {
-        // btn_clockin = textMatches("上班打卡").clickable(true).findOnce().parent().parent().click()
-        // btn_clockin = textMatches("上班打卡").clickable(true).findOnce().parent().click()
-        btn_clockin = textMatches("上班打卡").clickable(true).findOnce();
+        btn_clockin = textMatches("上班打卡").clickable(true).findOnce()
         btn_clockin.click()
         console.log("按下打卡按钮")
         sleep(1000)
@@ -472,11 +461,11 @@ function clockIn() {
     click(Math.floor(device.width / 2),Math.floor(device.height * 0.563))
     sleep(200)
     click(Math.floor(device.width / 2),Math.floor(device.height * 0.566))
-    console.log("使用坐标按下打卡按钮")
+    console.log("点击打卡按钮坐标")
     sleep(1000)
 
     handleLate() // 处理迟到打卡
-
+    
     home()
     sleep(1000)
 }
@@ -501,7 +490,7 @@ function clockOut() {
         sleep(1000)
         return;
     }
-
+    
     if (null != textContains("更新打卡").findOne(1000)) {
         if (null != textContains("早退").findOne(1000)) {
             toastLog("早退，更新打卡记录")
@@ -536,7 +525,7 @@ function clockOut() {
         className("android.widget.Button").text("早退打卡").clickable(true).findOnce().parent().click()
         console.warn("早退打卡")
     }
-
+    
     home()
     sleep(1000)
 }
@@ -556,7 +545,12 @@ function lockScreen(){
     // Power()
 
     // No Root
-    press(Math.floor(device.width / 2), Math.floor(device.height * 0.973), 1000) // 小米的快捷手势：长按Home键锁屏
+    press(Math.floor(device.width / 2), Math.floor(device.height * 0.973), 1000) //小米的快捷手势：长按Home键锁屏
+    
+    // 万能锁屏方案：向Tasker发送广播，触发系统锁屏动作
+    app.sendBroadcast({
+        action: ACTION_LOCK_SCREEN
+    });
 }
 
 
@@ -663,7 +657,7 @@ PC和手机连接到同一网络，使用 VSCode + Auto.js插件（在扩展中�
 ## 注意事项
 - 首次启动AutoJs时，需要为其开启无障碍权限
 
-- 运行脚本前，请在AutoJs菜单栏中（从屏幕左边划出），开启“通知读取权限”
+- 运行脚本前，请在AutoJs菜单栏中（从屏幕左边划出），开启 「通知读取权限」
 
 - AutoJs、Tasker可息屏运行，需要在系统设置中开启通知亮屏
 
@@ -672,6 +666,25 @@ PC和手机连接到同一网络，使用 VSCode + Auto.js插件（在扩展中�
 - 虽然脚本可执行完整的打卡步骤，但推荐开启钉钉的极速打卡功能，在钉钉启动时即可完成打卡，应把后续的步骤视为极速打卡失败后的保险措施
 
 ## 更新日志
+### 2021-03-09
+反馈优化：
+
+1. 移除 「结束钉钉」、「检查更新」 这个两个过程，使用最近一次监测到的正在运行的应用的包名进行判断
+
+2. 补充一个万能锁屏方案：向Tasker发送广播，触发Tasker中的系统锁屏操作。
+
+    - 在Tasker中添加一个任务，在任务中添加操作 「系统锁屏（关闭屏幕）」
+
+    - 在Tasker中添加一个事件类型的配置文件，事件类别：系统-收到的意图
+
+    - 在事件操作中填写：autojs.intent.action.LOCK_SCREEN ，保持发送方与接收方的action一致即可
+
+```javascript
+app.sendBroadcast({
+        action: 'autojs.intent.action.LOCK_SCREEN'
+    });
+```
+
 ### 2021-02-07
 优化：防止监听事件被耗时操作阻塞。
 
@@ -679,9 +692,9 @@ PC和手机连接到同一网络，使用 VSCode + Auto.js插件（在扩展中�
 
 针对钉钉6.0版本进行调整：
 
-1. 取消了 从消息界面进入工作台 以及 从工作台进入考勤打卡界面 这两个过程
+1. 移除 「进入工作台」 以及 「进入考勤打卡界面」 这两个过程
 
-2. 启动并成功登录钉钉后，直接使用URL Scheme拉起考勤打卡界面
+2. 启动并成功登录钉钉后，直接使用intent拉起考勤打卡界面
 
 ### 2021-01-08
 
@@ -716,9 +729,9 @@ function attendKaoqin(){
 
 #### 获取URL的方式如下：
 
-1. 在PC端找到 “智能工作助理” 联系人
+1. 在PC端找到 「智能工作助理」 联系人
 
-2. 发送消息 “打卡” ，点击 “立即打卡” 
+2. 发送消息 “打卡” ，点击 「立即打卡」 
 
 3. 弹出一个二维码。此二维码就是拉起考勤打卡界面的 URL，用自带的相机或其他应用扫描，并在浏览器中打开，即可获得完整URL
 
