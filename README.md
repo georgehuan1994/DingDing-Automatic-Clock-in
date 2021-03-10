@@ -1,22 +1,21 @@
-# DingDing-Automatic-Clock-in
-
-<img width="300" src="https://github.com/georgehuan1994/DingDing-Automatic-Clock-in/blob/master/图片/Screenshot_2020-10-29-19-29-35-361_org.autojs.autojs.jpg"/> <img width="300"  src="https://github.com/georgehuan1994/DingDing-Automatic-Clock-in/blob/master/图片/Scrennshot_20201231094431.png"/>
+## DingDing-Automatic-Clock-in
+<img width="275" src="https://github.com/georgehuan1994/DingDing-Automatic-Clock-in/blob/master/图片/截图_004.jpg"/> <img width="275" src="https://github.com/georgehuan1994/DingDing-Automatic-Clock-in/blob/master/图片/Screenshot_2020-10-29-19-29-35-361_org.autojs.autojs.jpg"/> <img width="275"  src="https://github.com/georgehuan1994/DingDing-Automatic-Clock-in/blob/master/图片/Scrennshot_20201231094431.png"/>
 
 ## 简介
-基于AutoJs的钉钉自动打卡、远程打卡脚本，可用于蓝牙考勤机
+基于 Auto.js 的钉钉自动打卡、远程打卡脚本，适用于蓝牙和WiFi考勤机。
 
 ## 功能
 - 定时打卡
 - 远程打卡
-- 邮件回复打卡结果
+- 邮件回复考勤结果
 
 ## 工具
-- AutoJs
+- Auto.js
 - Tasker
 - 网易邮箱大师
 
 ## 原理
-在AutoJs脚本中监听本机通知，在Tasker中创建定时任务发出打卡通知，或在另一设备上发送消息到本机，即可触发脚本中的打卡进程，实现定时打卡和远程打卡。
+通过AutoJs脚本中监听本机通知，在Tasker中创建定时任务，发出通知，或在另一设备上发送消息到本机，即可触发脚本中的打卡进程，实现定时打卡和远程打卡。
 
 ## 脚本
 ```javascript
@@ -177,7 +176,6 @@ function doClock() {
 
     brightScreen()      // 唤醒屏幕
     unlockScreen()      // 解锁屏幕
-    // stopApp()        // 结束钉钉
     holdOn()            // 随机等待
     signIn()            // 自动登录
     handleLate()        // 处理迟到
@@ -271,42 +269,6 @@ function unlockScreen() {
     sleep(1000) // 等待返回动画完成
     
     console.info("屏幕已解锁")
-}
-
-
-/**
- * @description 结束钉钉进程
- */
-function stopApp() {
-
-    console.log("结束钉钉进程")
-
-    // Root
-    // shell('am force-stop ' + BUNDLE_ID_DD, true) 
-
-    // No Root
-    app.openAppSetting(BUNDLE_ID_DD)
-    let btn_finish = textMatches(/(.*结束.*)|(.*停止.*)/).clickable(true).findOne() // 直到找到 "结束运行" 按钮，并点击
-    if (btn_finish.enabled()) {
-        btn_finish.click()
-        
-        if (null != textMatches("确定").clickable(true).findOne(1000)) { // 点击弹出的对话框中的 "确定" 按钮
-            btn_sure = textMatches("确定").clickable(true).findOnce()
-            btn_sure.click() 
-        }
-        if (null != descMatches("确定").clickable(true).findOne(1000)) {
-            btn_sure = descMatches("确定").clickable(true).findOnce()
-            btn_sure.click() 
-        }
-        console.info(app.getAppName(BUNDLE_ID_DD) + "已被关闭")
-    } 
-    else {
-        console.info(app.getAppName(BUNDLE_ID_DD) + "未在运行")
-    }
-    
-    sleep(1000)
-    home()
-    sleep(1000)
 }
 
 
@@ -620,50 +582,58 @@ function delStorageData(name, key) {
 }
 ```
 
-## 使用方法
-### AutoJs
-AutoJs是安卓平台上的JavaScript自动化工具 https://github.com/hyb1996/Auto.js
+## 工具介绍
+### Auto.js
+Auto.js是利用安卓系统的 「无障碍服务」 实现类似于按键精灵一样，可以通过代码模拟一系列界面动作的辅助工作。
+
+与 「按键精灵」 不同的是，它的模拟动作并不是简单的使用在界面定坐标点来实现，而是找窗口句柄来实现的。
+
+免费版：[Auto.js 4.1.1a Alpha2-armeabi-v7a-release](https://www.lanzous.com/i56aexi "Auto.js 4.1.1a Alpha2-armeabi-v7a-release")
+
+github：https://github.com/hyb1996/Auto.js
 
 官方文档：https://hyb1996.github.io/AutoJs-Docs/#/?id=%E7%BB%BC%E8%BF%B0
 
-下载：[Auto.js 4.1.1a Alpha2-armeabi-v7a-release](https://www.lanzous.com/i56aexi "Auto.js 4.1.1a Alpha2-armeabi-v7a-release")
-
-PC和手机连接到同一网络，使用 VSCode + Auto.js插件（在扩展中心搜索 "hyb1996"） 就能调试脚本并保存到手机上
+推荐使用[VS Code 插件](https://github.com/hyb1996/Auto.js-VSCode-Extension)进行调试，调试完成后，还能通过此插件将脚本保存到手机上。
 
 ### Tasker
-<img width="270" height="585" src="https://github.com/georgehuan1994/DingDing-Automatic-Clock-in/blob/master/图片/截图_004.jpg"/>
+Tasker 也是一个安卓自动化神器，与 Auto.js 结合使用可胜任日常工作流。
 
-1. 添加一个 "通知" 操作任务，通知标题修改为 "定时打卡"，通知文字随意，通知优先级设为 1
+定时打卡配置：
 
-2. 添加两个配置文件，使用日期和时间作为条件，分别在上班前和下班后触发
+1. 添加一个 「通知」 操作任务，通知标题修改为 「定时打卡」，通知文字随意，通知优先级设为1。
 
-或者[下载任务和配置文件](https://github.com/georgehuan1994/DingDing-Automatic-Clock-in/tree/master/Tasker配置 "下载配置")，导入到Tasker中使用
+2. 添加两个配置文件，使用日期和时间作为条件，分别在上班前和下班后触发。
 
-#### 导入方法
-1. 长按 菜单栏-任务，导入"发送通知.tsk.xml"。（在任务编辑界面左下方有一个三角形的播放按钮，点击即可发送通知，方便调试。）
+你也可以[下载配置文件](https://github.com/georgehuan1994/DingDing-Automatic-Clock-in/tree/master/Tasker配置)，导入到Tasker中使用，方法如下：
 
-2. 长按 菜单栏-配置文件，导入"上班打卡.prf.xml" 和 "下班打卡.prf.xml" 
+1. 长按 菜单栏-任务，导入"发送通知.tsk.xml"。
 
+2. 长按 菜单栏-配置文件，导入"上班打卡.prf.xml" 和 "下班打卡.prf.xml"。
+
+3. 在任务编辑界面左下方有一个三角形的播放按钮，点击即可发送通知，方便调试。
+
+## 使用方法
 ### 远程打卡
-- 回复标题为 "打卡" 的邮件，即可触发打卡进程
+- 回复标题为 「打卡」 的邮件，即可触发打卡进程。
 
-- 回复标题为 "考勤结果" 的邮件，即可查询最新一次打卡结果
+- 回复标题为 「考勤结果」 的邮件，即可查询最新一次打卡结果。
 
 ### 暂停/恢复定时打卡
-- 回复标题为 "暂停" 的邮件，即可暂停定时打卡功能（仅暂停定时打卡，不影响远程打卡功能）
+- 回复标题为 「暂停」 的邮件，即可暂停定时打卡功能（仅暂停定时打卡，不影响远程打卡功能）
 
-- 回复标题为 "恢复" 的邮件，即可恢复定时打卡功能
+- 回复标题为 「恢复」 的邮件，即可恢复定时打卡功能。
 
 ## 注意事项
 - 首次启动AutoJs时，需要为其开启无障碍权限
 
-- 运行脚本前，请在AutoJs菜单栏中（从屏幕左边划出），开启 「通知读取权限」
+- 运行脚本前，请在AutoJs菜单栏中（从屏幕左边划出），开启 「通知读取权限」。
 
-- AutoJs、Tasker可息屏运行，需要在系统设置中开启通知亮屏
+- AutoJs、Tasker可息屏运行，需要在系统设置中开启通知亮屏。
 
 - 为保证AutoJs、Tasker进程不被系统清理，可调整它们的电池管理策略、加入管理应用的白名单，为其开启前台服务、添加应用锁...
 
-- 虽然脚本可执行完整的打卡步骤，但推荐开启钉钉的极速打卡功能，在钉钉启动时即可完成打卡，应把后续的步骤视为极速打卡失败后的保险措施
+- 虽然脚本可执行完整的打卡步骤，但推荐开启钉钉的极速打卡功能，在钉钉启动时即可完成打卡，应把后续的步骤视为极速打卡失败后的保险措施。
 
 ## 更新日志
 ### 2021-03-09
@@ -673,11 +643,11 @@ PC和手机连接到同一网络，使用 VSCode + Auto.js插件（在扩展中�
 
 2. 补充一个万能锁屏方案：向Tasker发送广播，触发Tasker中的系统锁屏操作。
 
-    - 在Tasker中添加一个任务，在任务中添加操作 「系统锁屏（关闭屏幕）」
+ - 在Tasker中添加一个任务，在任务中添加操作 「系统锁屏（关闭屏幕）」
 
-    - 在Tasker中添加一个事件类型的配置文件，事件类别：系统-收到的意图
+ - 在Tasker中添加一个事件类型的配置文件，事件类别：系统-收到的意图
 
-    - 在事件操作中填写：autojs.intent.action.LOCK_SCREEN ，保持发送方与接收方的action一致即可
+ - 在事件操作中填写：autojs.intent.action.LOCK_SCREEN ，保持发送方与接收方的action一致即可
 
 ```javascript
 app.sendBroadcast({
@@ -753,7 +723,9 @@ function attendKaoqin(){
 
 ### 2020-09-02
 
-钉钉工作台界面改版（新增考勤打卡的快捷入口）。无法通过 "考勤打卡" 相关属性获取控件，改为使用 "去打卡" 文本获取按钮。若找不到 "去打卡" 按钮，则直接点击 "考勤打卡" 的屏幕坐标
+钉钉工作台界面改版（新增考勤打卡的快捷入口）
+
+改为使用 "去打卡" 文本获取按钮。若找不到 "去打卡" 按钮，则直接点击 "考勤打卡" 的屏幕坐标
 
 ## 声明
 
@@ -761,7 +733,7 @@ function attendKaoqin(){
 
 根据1994年第八届全国人大常委会通过和2018年第十三届全国人大常委会修正的《中华人民共和国劳动法》规定，劳动者**每日工作时间不超过8小时，平均每周工作时间不超过44小时，而996工作制每周至少要工作72个小时**，远超法律标准，因此996工作制度违反劳动法。
 
-而钉钉却允许企业管理者违反法律，非法排班！  
+<font color=red>而钉钉却允许企业管理者违反法律，非法排班！</font> 
 
 <blockquote>
 
