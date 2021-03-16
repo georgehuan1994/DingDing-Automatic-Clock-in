@@ -1,7 +1,7 @@
 /*
  * @Author: George Huan
  * @Date: 2020-08-03 09:30:30
- * @LastEditTime: 2021-03-09 10:59:30
+ * @LastEditTime: 2021-03-13 18:03:16
  * @Description: DingDing-Automatic-Clock-in (Run on AutoJs)
  * @URL: https://github.com/georgehuan1994/DingDing-Automatic-Clock-in
  */
@@ -37,14 +37,19 @@ const CORP_ID = ""
 
 const ACTION_LOCK_SCREEN = "autojs.intent.action.LOCK_SCREEN"
 
+
+
 // =================== ↓↓↓ 主线程：监听通知 ↓↓↓ ====================
 
 var suspend = false
 var needWaiting = true
 var currentDate = new Date()
 
-// 检查无障碍权限启动
+// 检查无障碍权限
 auto.waitFor("normal")
+
+// 检查Autojs版本
+requiresAutojsVersion("4.1.0")
 
 // 创建运行日志
 console.setGlobalLogConfig({
@@ -155,7 +160,6 @@ function doClock() {
 
     brightScreen()      // 唤醒屏幕
     unlockScreen()      // 解锁屏幕
-    // stopApp()        // 结束钉钉
     holdOn()            // 随机等待
     signIn()            // 自动登录
     handleLate()        // 处理迟到
@@ -171,7 +175,7 @@ function doClock() {
 
 
 /**
- * @description 发邮件流程
+ * @description 发送邮件流程
  * @param {*} title 邮件主题
  * @param {*} message 邮件正文
  */
@@ -179,8 +183,8 @@ function sendEmail(title, message) {
 
     console.log("开始发送邮件流程！")
 
-    brightScreen()  // 唤醒屏幕
-    unlockScreen()  // 解锁屏幕
+    brightScreen()      // 唤醒屏幕
+    unlockScreen()      // 解锁屏幕
 
     app.sendEmail({
         email: [EMAILL_ADDRESS],
@@ -188,10 +192,10 @@ function sendEmail(title, message) {
         text: message
     })
     
-    // 等待选择应用界面弹窗出现，如果设置了默认应用就注释掉
-    waitForActivity("com.android.internal.app.ChooserActivity")
+    console.log("选择邮件应用")
+    waitForActivity("com.android.internal.app.ChooserActivity")// 等待选择应用界面弹窗出现，如果设置了默认应用就注释掉
     
-    if (null != textMatches(NAME_OF_EMAILL_APP).findOne(3000)) {
+    if (null != textMatches(NAME_OF_EMAILL_APP).findOne(1000)) {
         btn_email = textMatches(NAME_OF_EMAILL_APP).findOnce().parent()
         btn_email.click()
     }
@@ -225,8 +229,9 @@ function brightScreen() {
     device.keepScreenOn()   // 保持亮屏
 
     console.info("设备已唤醒")
-    
+
     sleep(1000) // 等待屏幕亮起
+    
     if (!device.isScreenOn()) {
         console.warn("设备未唤醒，重试")
         device.wakeUpIfNeeded()
@@ -248,43 +253,11 @@ function unlockScreen() {
     home()
     sleep(1000) // 等待返回动画完成
     
-    console.info("屏幕已解锁")
-}
-
-
-/**
- * @description 结束钉钉进程
- */
-function stopApp() {
-
-    console.log("结束钉钉进程")
-
-    // Root
-    // shell('am force-stop ' + BUNDLE_ID_DD, true) 
-
-    // No Root
-    app.openAppSetting(BUNDLE_ID_DD)
-    let btn_finish = textMatches(/(.*结束.*)|(.*停止.*)/).clickable(true).findOne() // 直到找到 "结束运行" 按钮，并点击
-    if (btn_finish.enabled()) {
-        btn_finish.click()
-        
-        if (null != textMatches("确定").clickable(true).findOne(1000)) { // 点击弹出的对话框中的 "确定" 按钮
-            btn_sure = textMatches("确定").clickable(true).findOnce()
-            btn_sure.click() 
-        }
-        if (null != descMatches("确定").clickable(true).findOne(1000)) {
-            btn_sure = descMatches("确定").clickable(true).findOnce()
-            btn_sure.click() 
-        }
-        console.info(app.getAppName(BUNDLE_ID_DD) + "已被关闭")
-    } 
-    else {
-        console.info(app.getAppName(BUNDLE_ID_DD) + "未在运行")
+    if (isDeviceLocked()) {
+        console.error("上滑解锁失败，请调整gesture参数，或使用其他解锁方案！")
+        exit()
     }
-    
-    sleep(1000)
-    home()
-    sleep(1000)
+    console.info("屏幕已解锁")
 }
 
 
@@ -310,10 +283,11 @@ function signIn() {
 
     app.launchPackage(BUNDLE_ID_DD)
     console.log("正在启动" + app.getAppName(BUNDLE_ID_DD) + "...")
-    
-    sleep(10000)    // 等待钉钉启动
 
-    if (id("et_pwd_login").exists()) {
+    sleep(10000) // 等待钉钉启动
+
+    if (currentPackage() == BUNDLE_ID_DD &&
+        currentActivity() == "com.alibaba.android.user.login.SignUpWithPwdActivity") {
         console.info("账号未登录")
 
         var account = id("et_phone_input").findOne()
@@ -326,17 +300,15 @@ function signIn() {
         
         var btn_login = id("btn_next").findOne()
         btn_login.click()
-        console.log("正在登陆")
+        console.log("正在登陆...")
+
+        sleep(3000)
     }
-    else {
-        if (currentPackage() == BUNDLE_ID_DD) {
-            console.info("账号已登录")
-            sleep(1000)
-        }
-        else {
-            console.warn("未检测到活动页面，重试")
-            signIn()
-        }
+
+    if (currentPackage() == BUNDLE_ID_DD &&
+        currentActivity() != "com.alibaba.android.user.login.SignUpWithPwdActivity") {
+        console.info("账号已登录")
+        sleep(1000)
     }
 }
 
@@ -346,12 +318,12 @@ function signIn() {
  */
 function handleLate(){
    
-    if (null != textMatches(/(.*迟到打卡.*)/).clickable(true).findOne(1000)) {
+    if (null != textMatches("迟到打卡").clickable(true).findOne(1000)) {
         btn_late = textMatches("迟到打卡").clickable(true).findOnce() 
         btn_late.click()
         console.warn("迟到打卡")
     }
-    if (null != descMatches(/(.*迟到打卡.*)/).clickable(true).findOne(1000)) {
+    if (null != descMatches("迟到打卡").clickable(true).findOne(1000)) {
         btn_late = descMatches("迟到打卡").clickable(true).findOnce() 
         btn_late.click()
         console.warn("迟到打卡")
@@ -394,14 +366,8 @@ function clockIn() {
 
     console.log("上班打卡...")
 
-    if (null != textContains("休息").findOne(1000)) {
-        console.info("textContains：今日休息")
-        home()
-        sleep(1000)
-        return;
-    }
-    if (null != descContains("休息").findOne(1000)) {
-        console.info("descContains：今日休息")
+    if (null != textContains("休息").findOne(1000) || null != descContains("休息").findOne(1000)) {
+        console.info("今日休息")
         home()
         sleep(1000)
         return;
@@ -414,7 +380,7 @@ function clockIn() {
         return;
     }
 
-    console.log("等待连接到考勤机...")
+    console.log("等待连接到考勤机：" + NAME_OF_ATTENDANCE_MACHINE + "...")
     sleep(2000)
 
     if (null != textContains("未连接").findOne(1000)) {
@@ -426,22 +392,16 @@ function clockIn() {
     console.info("已连接考勤机：" + NAME_OF_ATTENDANCE_MACHINE)
     sleep(1000)
 
-    if (null != textMatches(/(.*上班打卡.*)/).clickable(true).findOne(1000)) {
+    if (null != textMatches("上班打卡").clickable(true).findOne(1000)) {
         btn_clockin = textMatches("上班打卡").clickable(true).findOnce()
         btn_clockin.click()
         console.log("按下打卡按钮")
-        sleep(1000)
     }
-
-    // 因上班打卡按钮有可能获取不到，故使用打卡按钮坐标作为保险操作
-    click(Math.floor(device.width / 2),Math.floor(device.height * 0.560))
-    sleep(200)
-    click(Math.floor(device.width / 2),Math.floor(device.height * 0.563))
-    sleep(200)
-    click(Math.floor(device.width / 2),Math.floor(device.height * 0.566))
-    console.log("点击打卡按钮坐标")
+    else {
+        click(device.width / 2, device.height * 0.560)
+        console.log("点击打卡按钮坐标")
+    }
     sleep(1000)
-
     handleLate() // 处理迟到打卡
     
     home()
@@ -456,14 +416,8 @@ function clockOut() {
 
     console.log("下班打卡...")
 
-    if (null != textContains("休息").findOne(1000)) {
-        console.info("textContains：今日休息")
-        home()
-        sleep(1000)
-        return;
-    }
-    if (null != descContains("休息").findOne(1000)) {
-        console.info("descContains：今日休息")
+    if (null != textContains("休息").findOne(1000) || null != descContains("休息").findOne(1000)) {
+        console.info("今日休息")
         home()
         sleep(1000)
         return;
@@ -480,7 +434,7 @@ function clockOut() {
         }
     }
 
-    console.log("等待连接到考勤机...")
+    console.log("等待连接到考勤机：" + NAME_OF_ATTENDANCE_MACHINE + "...")
     sleep(2000)
     
     if (null != textContains("未连接").findOne(1000)) {
@@ -492,7 +446,7 @@ function clockOut() {
     console.info("已连接考勤机：" + NAME_OF_ATTENDANCE_MACHINE)
     sleep(1000)
 
-    if (null != textMatches(/(.*下班打卡.*)/).clickable(true).findOne(1000)) {
+    if (null != textMatches("下班打卡").clickable(true).findOne(1000)) {
         btn_clockout = textMatches("下班打卡").clickable(true).findOnce()
         btn_clockout.click()
         console.log("按下打卡按钮")
@@ -523,16 +477,15 @@ function lockScreen(){
     // Power()
 
     // No Root
-    press(Math.floor(device.width / 2), Math.floor(device.height * 0.973), 1000) //小米的快捷手势：长按Home键锁屏
+    press(Math.floor(device.width / 2), Math.floor(device.height * 0.973), 1000) // 小米的快捷手势：长按Home键锁屏
     
-    // 万能锁屏方案：向Tasker发送广播，触发系统锁屏动作
-    app.sendBroadcast({
-        action: ACTION_LOCK_SCREEN
-    });
+    // 万能锁屏方案：向Tasker发送广播，触发系统锁屏动作。配置方法见 2021-03-09 更新日志
+    app.sendBroadcast({action: ACTION_LOCK_SCREEN});
 }
 
 
-// ===================== 功能函数 =======================
+
+// ===================== ↓↓↓ 功能函数 ↓↓↓ =======================
 
 function dateDigitToString(num){
     return num < 10 ? '0' + num : num
@@ -595,4 +548,20 @@ function delStorageData(name, key) {
     if (storage.contains(key)) {
         storage.remove(key)
     }
+}
+
+// 获取应用版本号
+function getPackageVersion(bundleId) {
+    importPackage(android.content)
+    var pckMan = context.getPackageManager()
+    var packageInfo = pckMan.getPackageInfo(bundleId, 0)
+    return packageInfo.versionName
+}
+
+// 屏幕是否为锁定状态
+function isDeviceLocked() {
+    importClass(android.app.KeyguardManager)
+    importClass(android.content.Context)
+    var km = context.getSystemService(Context.KEYGUARD_SERVICE)
+    return km.isKeyguardLocked()
 }
