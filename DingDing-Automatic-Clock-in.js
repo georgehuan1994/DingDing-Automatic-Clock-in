@@ -1,7 +1,7 @@
 /*
  * @Author: George Huan
  * @Date: 2020-08-03 09:30:30
- * @LastEditTime: 2021-03-13 18:03:16
+ * @LastEditTime: 2021-03-20 15:00:56
  * @Description: DingDing-Automatic-Clock-in (Run on AutoJs)
  * @URL: https://github.com/georgehuan1994/DingDing-Automatic-Clock-in
  */
@@ -374,7 +374,8 @@ function clockIn() {
     }
 
     if (null != textContains("已打卡").findOne(1000)) {
-        toastLog("已打卡")
+        console.info("已打卡")
+        toast("已打卡")
         home()
         sleep(1000)
         return;
@@ -470,17 +471,24 @@ function lockScreen(){
 
     console.log("关闭屏幕")
 
-    device.setBrightnessMode(1) // 自动亮度模式
-    device.cancelKeepingAwake() // 取消设备常亮
-    
-    // Root
+    // 锁屏方案1：Root
     // Power()
 
-    // No Root
+    // 锁屏方案2：No Root
     press(Math.floor(device.width / 2), Math.floor(device.height * 0.973), 1000) // 小米的快捷手势：长按Home键锁屏
     
     // 万能锁屏方案：向Tasker发送广播，触发系统锁屏动作。配置方法见 2021-03-09 更新日志
-    app.sendBroadcast({action: ACTION_LOCK_SCREEN});
+    // app.sendBroadcast({action: ACTION_LOCK_SCREEN});
+
+    device.setBrightnessMode(1) // 自动亮度模式
+    device.cancelKeepingAwake() // 取消设备常亮
+
+    if (isDeviceLocked()) {
+        console.info("屏幕已关闭")
+    }
+    else {
+        console.error("屏幕未关闭，请尝试其他锁屏方案")
+    }
 }
 
 
