@@ -2,12 +2,13 @@
 <img width="275" src="https://github.com/georgehuan1994/DingDing-Automatic-Clock-in/blob/master/图片/截图_004.jpg"/> <img width="275" src="https://github.com/georgehuan1994/DingDing-Automatic-Clock-in/blob/master/图片/Screenshot_2020-10-29-19-29-35-361_org.autojs.autojs.jpg"/> <img width="275"  src="https://github.com/georgehuan1994/DingDing-Automatic-Clock-in/blob/master/图片/Scrennshot_20201231094431.png"/>
 
 ## 简介
-基于Auto.js的钉钉自动打卡、远程打卡脚本，适用于蓝牙和WiFi考勤机。
+钉钉自动打卡、远程打卡脚本，基于Auto.js，适用于蓝牙考勤机。
 
 ## 功能
 - 定时打卡
 - 远程打卡
-- 邮件回复考勤结果
+- 远程暂停/恢复定时打卡
+- 以邮件的形式发送考勤结果
 
 ## 工具
 - Auto.js
@@ -15,14 +16,16 @@
 - 网易邮箱大师
 
 ## 原理
-通过AutoJs脚本监听本机通知，在Tasker中创建定时任务，发出通知，或在另一设备上发送消息到本机，即可触发脚本中的打卡进程，实现定时打卡和远程打卡。
+通过 AutoJs 脚本监听本机通知，在Tasker中创建定时任务，发出通知，或在另一设备上发送消息到本机，即可触发脚本中的打卡进程，实现定时打卡和远程打卡。
+
+监听到钉钉发出的打卡成功通知后，将通知文本作为邮件正文发送，实现发送考勤结果的功能。
 
 ## 脚本
 ```javascript
 /*
  * @Author: George Huan
  * @Date: 2020-08-03 09:30:30
- * @LastEditTime: 2021-03-13 18:03:16
+ * @LastEditTime: 2021-03-20 15:00:56
  * @Description: DingDing-Automatic-Clock-in (Run on AutoJs)
  * @URL: https://github.com/georgehuan1994/DingDing-Automatic-Clock-in
  */
@@ -395,7 +398,8 @@ function clockIn() {
     }
 
     if (null != textContains("已打卡").findOne(1000)) {
-        toastLog("已打卡")
+        console.info("已打卡")
+        toast("已打卡")
         home()
         sleep(1000)
         return;
@@ -491,17 +495,24 @@ function lockScreen(){
 
     console.log("关闭屏幕")
 
-    device.setBrightnessMode(1) // 自动亮度模式
-    device.cancelKeepingAwake() // 取消设备常亮
-    
-    // Root
+    // 锁屏方案1：Root
     // Power()
 
-    // No Root
+    // 锁屏方案2：No Root
     press(Math.floor(device.width / 2), Math.floor(device.height * 0.973), 1000) // 小米的快捷手势：长按Home键锁屏
     
     // 万能锁屏方案：向Tasker发送广播，触发系统锁屏动作。配置方法见 2021-03-09 更新日志
-    app.sendBroadcast({action: ACTION_LOCK_SCREEN});
+    // app.sendBroadcast({action: ACTION_LOCK_SCREEN});
+
+    device.setBrightnessMode(1) // 自动亮度模式
+    device.cancelKeepingAwake() // 取消设备常亮
+
+    if (isDeviceLocked()) {
+        console.info("屏幕已关闭")
+    }
+    else {
+        console.error("屏幕未关闭，请尝试其他锁屏方案")
+    }
 }
 
 
@@ -586,6 +597,7 @@ function isDeviceLocked() {
     var km = context.getSystemService(Context.KEYGUARD_SERVICE)
     return km.isKeyguardLocked()
 }
+
 ```
 
 ## 工具介绍
@@ -608,62 +620,50 @@ Tasker 也是一个安卓自动化神器，与 Auto.js 结合使用可胜任日�
 定时打卡配置：
 
 1. 添加一个 「通知」 操作任务，通知标题修改为 「定时打卡」，通知文字随意，通知优先级设为1。
-
 2. 添加两个配置文件，使用日期和时间作为条件，分别在上班前和下班后触发。
 
 你也可以[下载配置文件](https://github.com/georgehuan1994/DingDing-Automatic-Clock-in/tree/master/Tasker配置)，导入到Tasker中使用，方法如下：
 
 1. 长按 菜单栏-任务，导入"发送通知.tsk.xml"。
-
 2. 长按 菜单栏-配置文件，导入"上班打卡.prf.xml" 和 "下班打卡.prf.xml"。
-
 3. 在任务编辑界面左下方有一个三角形的播放按钮，点击即可发送通知，方便调试。
 
 ## 使用方法
 ### 远程打卡
 - 回复标题为 「打卡」 的邮件，即可触发打卡进程。
-
 - 回复标题为 「考勤结果」 的邮件，即可查询最新一次打卡结果。
 
 ### 暂停/恢复定时打卡
 - 回复标题为 「暂停」 的邮件，即可暂停定时打卡功能（仅暂停定时打卡，不影响远程打卡功能）
-
 - 回复标题为 「恢复」 的邮件，即可恢复定时打卡功能。
 
 ## 注意事项
 - 首次启动AutoJs时，需要为其开启无障碍权限
-
 - 运行脚本前，请在AutoJs菜单栏中（从屏幕左边划出），开启 「通知读取权限」。
-
 - AutoJs、Tasker可息屏运行，需要在系统设置中开启通知亮屏。
-
 - 为保证AutoJs、Tasker进程不被系统清理，可调整它们的电池管理策略、加入管理应用的白名单，为其开启前台服务、添加应用锁...
-
 - 虽然脚本可执行完整的打卡步骤，但推荐开启钉钉的极速打卡功能，在钉钉启动时即可完成打卡，应把后续的步骤视为极速打卡失败后的保险措施。
 
 ## 更新日志
 ### 2020-03-15
-反馈优化：
+<details open>
+<summary></summary>
+
 1. 运行时检查Auto.js版本，脚本需要在Auto.js 4.1.0及以上版本中运行
-
 2. 新增解锁是否成功的判断，若解锁失败则停止运行脚本
-
 3. 优化 `signIn()` 方法，使用 bundleId + activity 来判断登录情况
-
 4. 优化部分控件和信息的获取方式
-
+</details>
 
 ### 2021-03-09
-反馈优化：
+<details open>
+<summary></summary>
 
 1. 移除 「结束钉钉」、「检查更新」 这个两个过程，使用最近一次监测到的正在运行的应用的包名进行判断
-
 2. 补充一个万能锁屏方案：向Tasker发送广播，触发Tasker中的系统锁屏操作。
 
  	- 在Tasker中添加一个任务，在任务中添加操作 「系统锁屏（关闭屏幕）」
-
  	- 在Tasker中添加一个事件类型的配置文件，事件类别：系统-收到的意图
-
  	- 在事件操作中填写：autojs.intent.action.LOCK_SCREEN ，保持发送方与接收方的action一致即可
 
 ```javascript
@@ -671,56 +671,56 @@ app.sendBroadcast({
         action: 'autojs.intent.action.LOCK_SCREEN'
     });
 ```
+</details>
 
 ### 2021-02-07
-<details>
-<summary>展开查看</summary>
-    
-优化：防止监听事件被耗时操作阻塞。
+<details open>
+<summary></summary>
+
+1. 防止监听事件被耗时操作阻塞。
 </details>
 
 ### 2021-01-15
-<details>
-<summary>展开查看</summary>
-    
-针对钉钉6.0版本进行调整：
+<details open>
+<summary></summary> 
 
 1. 移除 「进入工作台」 以及 「进入考勤打卡界面」 这两个过程
-
 2. 启动并成功登录钉钉后，直接使用intent拉起考勤打卡界面
 </details>
 
 ### 2021-01-08
-<details>
-<summary>展开查看</summary>
-    
-修复：通知过滤器报错
+<details open>
+<summary></summary>
+
+1. 修复：通知过滤器报错
 </details>
 
 ### 2020-12-30
-<details>
-<summary>展开查看</summary>
-    
-优化：现在可以通过邮件来 暂停/恢复 定时打卡功能，以应对停工停产，或其他需要暂时停止定时打卡的特殊情况
+<details open>
+<summary></summary>
+
+1. 优化：现在可以通过邮件来 暂停/恢复 定时打卡功能，以应对停工停产，或其他需要暂时停止定时打卡的特殊情况
 </details>
 
 ### 2020-12-04
-<details>
-<summary>展开查看</summary>
-  
-优化：打卡过程在子线程中执行，钉钉返回打卡结果后，直接中断子线程，减少无效操作
+<details open>
+<summary></summary>
+
+1. 优化：打卡过程在子线程中执行，钉钉返回打卡结果后，直接中断子线程，减少无效操作
 </details>
 
 ### 2020-10-27
-<details>
-<summary>展开查看</summary>
-    
-修复：当钉钉的通知文本为null时，indexOf()方法无法正常执行
+<details open>
+<summary></summary>
+
+1. 修复：当钉钉的通知文本为null时，indexOf()方法无法正常执行
 </details>
 
 ### 2020-09-24
+<details open>
+<summary></summary>
 
-优化：使用URL Scheme直接拉起考勤打卡界面
+1. 优化：使用URL Scheme直接拉起考勤打卡界面
 
 ```javascript
 function attendKaoqin(){
@@ -732,44 +732,37 @@ function attendKaoqin(){
       sleep(5000)
 }
 ```
+</details>
 
 #### 获取URL的方式如下：
 
 1. 在PC端找到 「智能工作助理」 联系人
-
 2. 发送消息 “打卡” ，点击 「立即打卡」 
-
 3. 弹出一个二维码。此二维码就是拉起考勤打卡界面的 URL，用自带的相机或其他应用扫描，并在浏览器中打开，即可获得完整URL
-
 4. 观察获取到的URL，找到 `CorpId=xxxxxxxxxxxxxxxxxxx` ，将CorpId的值填写到的脚本开头的CORP_ID这个常量中
-
 5. 仅使用 `dingtalk://dingtalkclient/page/link?url=https://attend.dingtalk.com/attend/index.html`，也可以拉起旧版打卡界面，钉钉会自动获取企业的CorpId。如果加入了多个组织，且没有填写CorpId，则在拉起考勤界面时会弹出一个选择组织的对话框。
 
 ### 2020-09-11
-<details>
-<summary>展开查看</summary>
-    
+<details open>
+<summary></summary>
+
 1. 将上次考勤结果储存在本地
-
 2. 将运行日志储存在本地 /sdcard/脚本/Archive/
-
 3. 修复在下班极速打卡之后，重复打卡的问题
 </details>
 
 ### 2020-09-04
-<details>
-<summary>展开查看</summary>
-    
-将 "打卡" 与 "发送邮件" 分离成两个过程，打卡完成后，将钉钉返回的考勤结果作为邮件正文发送
-</details>
+<details open>
+<summary></summary>
+   
+1. 将 "打卡" 与 "发送邮件" 分离成两个过程，打卡完成后，将钉钉返回的考勤结果作为邮件正文发送
+</details open>
 
 ### 2020-09-02
-<details>
-<summary>展开查看</summary>
+<details open>
+<summary></summary>
 
-钉钉工作台界面改版（新增考勤打卡的快捷入口）
-
-改为使用 "去打卡" 文本获取按钮。若找不到 "去打卡" 按钮，则直接点击 "考勤打卡" 的屏幕坐标
+1. 改为使用 "去打卡" 文本获取按钮。若找不到 "去打卡" 按钮，则直接点击 "考勤打卡" 的屏幕坐标
 </details>
 
 
