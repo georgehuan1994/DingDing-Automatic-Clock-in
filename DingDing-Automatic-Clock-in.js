@@ -1,7 +1,7 @@
 /*
  * @Author: George Huan
  * @Date: 2020-08-03 09:30:30
- * @LastEditTime: 2021-03-20 15:00:56
+ * @LastEditTime: 2021-04-29 10:13:56
  * @Description: DingDing-Automatic-Clock-in (Run on AutoJs)
  * @URL: https://github.com/georgehuan1994/DingDing-Automatic-Clock-in
  */
@@ -10,13 +10,12 @@ const ACCOUNT = "钉钉账号"
 const PASSWORD = "钉钉密码"
 const EMAILL_ADDRESS = "用于接收打卡结果的邮箱地址"
 
-const BUNDLE_ID_DD = "com.alibaba.android.rimet"
-const BUNDLE_ID_XMSF = "com.xiaomi.xmsf"
-const BUNDLE_ID_MAIL = "com.netease.mail"
-const BUNDLE_ID_TASKER = "net.dinglisch.android.taskerm"
+const BUNDLE_ID_DD = "com.alibaba.android.rimet"	// 钉钉
+const BUNDLE_ID_XMSF = "com.xiaomi.xmsf"	// 小米推送服务
+const BUNDLE_ID_MAIL = "com.netease.mail"	// 网易邮箱大师
+const BUNDLE_ID_TASKER = "net.dinglisch.android.taskerm"	// Tasker
 
-const NAME_OF_EMAILL_APP = "网易邮箱大师"
-const NAME_OF_ATTENDANCE_MACHINE = "前台大门" // 考勤机名称
+const NAME_OF_EMAILL_APP = "网易邮箱大师"	
 
 const LOWER_BOUND = 1 * 60 * 1000 // 最小等待时间：1min
 const UPPER_BOUND = 5 * 60 * 1000 // 最大等待时间：5min
@@ -35,8 +34,11 @@ const WEEK_DAY = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","S
 // 公司的钉钉CorpId，获取方法见 2020-09-24 更新日志。如果只加入了一家公司，可以不填
 const CORP_ID = "" 
 
+// 锁屏意图，配合Tasker完成锁屏动作，具体配置方法见 2021-03-09 更新日志
 const ACTION_LOCK_SCREEN = "autojs.intent.action.LOCK_SCREEN"
 
+// 启用音量上键监听，开启后无法通过音量键调整音量！按下音量上键：结束所有子线程
+const OBSERVE_VOLUME_KEY = true
 
 
 // =================== ↓↓↓ 主线程：监听通知 ↓↓↓ ====================
@@ -63,6 +65,24 @@ events.on("notification", function(n) {
 });
 
 toastLog("监听中，请在日志中查看记录的通知及其内容")
+
+events.setKeyInterceptionEnabled("volume_up", OBSERVE_VOLUME_KEY)
+
+if (OBSERVE_VOLUME_KEY) {
+    events.observeKey()
+};
+    
+// 监听音量上键
+events.onKeyDown("volume_up", function(event){
+    threads.shutDownAll()
+    device.setBrightnessMode(1)
+    device.cancelKeepingAwake()
+    toast("All sub threads have been shut down.")
+
+    // 可以利用回调逐步调试
+    // doClock()
+    // sendEmail("TestTitle", "TestMessage")
+});
 
 // =================== ↑↑↑ 主线程：监听通知 ↑↑↑ =====================
 
@@ -248,7 +268,7 @@ function unlockScreen() {
 
     console.log("解锁屏幕")
     
-    gesture(320,[540,device.height * 0.9],[540,device.height * 0.1]) // 上滑解锁
+    gesture(320,[device.width / 2, device.height * 0.9],[device.width / 2, device.height * 0.1]) // 上滑解锁
     sleep(1000) // 等待解锁动画完成
     home()
     sleep(1000) // 等待返回动画完成
@@ -283,6 +303,8 @@ function signIn() {
 
     app.launchPackage(BUNDLE_ID_DD)
     console.log("正在启动" + app.getAppName(BUNDLE_ID_DD) + "...")
+
+    setVolume(0) // 设备静音
 
     sleep(10000) // 等待钉钉启动
 
@@ -347,15 +369,12 @@ function attendKaoqin(){
         data: url_scheme,
         //flags: [Intent.FLAG_ACTIVITY_NEW_TASK]
     });
-    
     app.startActivity(a);
     console.log("正在进入考勤界面...")
-    sleep(6000)
     
-    if (null != textMatches("申请").clickable(true).findOne(3000)) {
-        console.info("已进入考勤界面")
-        sleep(1000)
-    }
+    textContains("申请").waitFor()
+    console.info("已进入考勤界面")
+    sleep(1000)
 }
 
 
@@ -366,7 +385,7 @@ function clockIn() {
 
     console.log("上班打卡...")
 
-    if (null != textContains("休息").findOne(1000) || null != descContains("休息").findOne(1000)) {
+    if (null != textContains("休息").findOne(1000)) {
         console.info("今日休息")
         home()
         sleep(1000)
@@ -381,16 +400,19 @@ function clockIn() {
         return;
     }
 
-    console.log("等待连接到考勤机：" + NAME_OF_ATTENDANCE_MACHINE + "...")
+    console.log("等待连接到考勤机...")
     sleep(2000)
-
+    
     if (null != textContains("未连接").findOne(1000)) {
         console.error("未连接考勤机，重新进入考勤界面！")
+        back()
+        sleep(2000)
         attendKaoqin()
+        return;
     }
 
-    textContains(NAME_OF_ATTENDANCE_MACHINE).waitFor()
-    console.info("已连接考勤机：" + NAME_OF_ATTENDANCE_MACHINE)
+    textContains("已连接").waitFor()
+    console.info("已连接考勤机")
     sleep(1000)
 
     if (null != textMatches("上班打卡").clickable(true).findOne(1000)) {
@@ -417,7 +439,7 @@ function clockOut() {
 
     console.log("下班打卡...")
 
-    if (null != textContains("休息").findOne(1000) || null != descContains("休息").findOne(1000)) {
+    if (null != textContains("休息").findOne(1000)) {
         console.info("今日休息")
         home()
         sleep(1000)
@@ -435,16 +457,19 @@ function clockOut() {
         }
     }
 
-    console.log("等待连接到考勤机：" + NAME_OF_ATTENDANCE_MACHINE + "...")
+    console.log("等待连接到考勤机...")
     sleep(2000)
     
     if (null != textContains("未连接").findOne(1000)) {
         console.error("未连接考勤机，重新进入考勤界面！")
+        back()
+        sleep(2000)
         attendKaoqin()
+        return;
     }
 
-    textContains(NAME_OF_ATTENDANCE_MACHINE).waitFor()
-    console.info("已连接考勤机：" + NAME_OF_ATTENDANCE_MACHINE)
+    textContains("已连接").waitFor()
+    console.info("已连接考勤机")
     sleep(1000)
 
     if (null != textMatches("下班打卡").clickable(true).findOne(1000)) {
@@ -482,12 +507,12 @@ function lockScreen(){
 
     device.setBrightnessMode(1) // 自动亮度模式
     device.cancelKeepingAwake() // 取消设备常亮
-
+    
     if (isDeviceLocked()) {
         console.info("屏幕已关闭")
     }
     else {
-        console.error("屏幕未关闭，请尝试其他锁屏方案")
+        console.error("屏幕未关闭，请尝试其他锁屏方案，或等待屏幕自动关闭")
     }
 }
 
@@ -572,4 +597,12 @@ function isDeviceLocked() {
     importClass(android.content.Context)
     var km = context.getSystemService(Context.KEYGUARD_SERVICE)
     return km.isKeyguardLocked()
+}
+
+// 设置媒体和通知音量
+function setVolume(volume) {
+    device.setMusicVolume(volume)
+    device.setNotificationVolume(volume)
+    console.verbose("媒体音量:" + device.getMusicVolume())
+    console.verbose("通知音量:" + device.getNotificationVolume())
 }
