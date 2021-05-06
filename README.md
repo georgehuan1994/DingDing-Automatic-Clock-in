@@ -2,18 +2,17 @@
 <img width="275" src="https://github.com/georgehuan1994/DingDing-Automatic-Clock-in/blob/master/图片/截图_004.jpg"/> <img width="275" src="https://github.com/georgehuan1994/DingDing-Automatic-Clock-in/blob/master/图片/Screenshot_2020-10-29-19-29-35-361_org.autojs.autojs.jpg"/> <img width="275"  src="https://github.com/georgehuan1994/DingDing-Automatic-Clock-in/blob/master/图片/Scrennshot_20201231094431.png"/>
 
 ## 简介
-钉钉自动打卡、远程打卡脚本，基于Auto.js，适用于蓝牙考勤机。
+钉钉全自动打卡、远程打卡脚本，免Root，基于Auto.js，适用于蓝牙考勤机。
 
 ## 功能
 - 定时打卡
 - 远程打卡
-- 远程暂停/恢复定时打卡
-- 以邮件的形式发送考勤结果
+- 发送考勤结果
 
 ## 工具
 - Auto.js
 - Tasker
-- 网易邮箱大师
+- 一款通讯应用（QQ、微信、邮件... 此处我使用 网易邮箱大师。若要在`app.sendEmail()`方法中带上附件，推荐使用系统内置的邮件应用）
 
 ## 原理
 通过 AutoJs 脚本监听本机通知，在Tasker中创建定时任务，发出通知，或在另一设备上发送消息到本机，即可触发脚本中的打卡进程，实现定时打卡和远程打卡。
@@ -25,7 +24,7 @@
 /*
  * @Author: George Huan
  * @Date: 2020-08-03 09:30:30
- * @LastEditTime: 2021-03-20 15:00:56
+ * @LastEditTime: 2021-04-29 10:13:56
  * @Description: DingDing-Automatic-Clock-in (Run on AutoJs)
  * @URL: https://github.com/georgehuan1994/DingDing-Automatic-Clock-in
  */
@@ -34,13 +33,12 @@ const ACCOUNT = "钉钉账号"
 const PASSWORD = "钉钉密码"
 const EMAILL_ADDRESS = "用于接收打卡结果的邮箱地址"
 
-const BUNDLE_ID_DD = "com.alibaba.android.rimet"
-const BUNDLE_ID_XMSF = "com.xiaomi.xmsf"
-const BUNDLE_ID_MAIL = "com.netease.mail"
-const BUNDLE_ID_TASKER = "net.dinglisch.android.taskerm"
+const BUNDLE_ID_DD = "com.alibaba.android.rimet"	// 钉钉
+const BUNDLE_ID_XMSF = "com.xiaomi.xmsf"	// 小米推送服务
+const BUNDLE_ID_MAIL = "com.netease.mail"	// 网易邮箱大师
+const BUNDLE_ID_TASKER = "net.dinglisch.android.taskerm"	// Tasker
 
-const NAME_OF_EMAILL_APP = "网易邮箱大师"
-const NAME_OF_ATTENDANCE_MACHINE = "前台大门" // 考勤机名称
+const NAME_OF_EMAILL_APP = "网易邮箱大师"	
 
 const LOWER_BOUND = 1 * 60 * 1000 // 最小等待时间：1min
 const UPPER_BOUND = 5 * 60 * 1000 // 最大等待时间：5min
@@ -59,8 +57,11 @@ const WEEK_DAY = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","S
 // 公司的钉钉CorpId，获取方法见 2020-09-24 更新日志。如果只加入了一家公司，可以不填
 const CORP_ID = "" 
 
+// 锁屏意图，配合Tasker完成锁屏动作，具体配置方法见 2021-03-09 更新日志
 const ACTION_LOCK_SCREEN = "autojs.intent.action.LOCK_SCREEN"
 
+// 启用音量上键监听，开启后无法通过音量键调整音量！按下音量上键：结束所有子线程
+const OBSERVE_VOLUME_KEY = true
 
 
 // =================== ↓↓↓ 主线程：监听通知 ↓↓↓ ====================
@@ -87,6 +88,24 @@ events.on("notification", function(n) {
 });
 
 toastLog("监听中，请在日志中查看记录的通知及其内容")
+
+events.setKeyInterceptionEnabled("volume_up", OBSERVE_VOLUME_KEY)
+
+if (OBSERVE_VOLUME_KEY) {
+    events.observeKey()
+};
+    
+// 监听音量上键
+events.onKeyDown("volume_up", function(event){
+    threads.shutDownAll()
+    device.setBrightnessMode(1)
+    device.cancelKeepingAwake()
+    toast("All sub threads have been shut down.")
+
+    // 可以利用回调逐步调试
+    // doClock()
+    // sendEmail("TestTitle", "TestMessage")
+});
 
 // =================== ↑↑↑ 主线程：监听通知 ↑↑↑ =====================
 
@@ -272,7 +291,7 @@ function unlockScreen() {
 
     console.log("解锁屏幕")
     
-    gesture(320,[540,device.height * 0.9],[540,device.height * 0.1]) // 上滑解锁
+    gesture(320,[device.width / 2, device.height * 0.9],[device.width / 2, device.height * 0.1]) // 上滑解锁
     sleep(1000) // 等待解锁动画完成
     home()
     sleep(1000) // 等待返回动画完成
@@ -307,6 +326,8 @@ function signIn() {
 
     app.launchPackage(BUNDLE_ID_DD)
     console.log("正在启动" + app.getAppName(BUNDLE_ID_DD) + "...")
+
+    setVolume(0) // 设备静音
 
     sleep(10000) // 等待钉钉启动
 
@@ -371,15 +392,12 @@ function attendKaoqin(){
         data: url_scheme,
         //flags: [Intent.FLAG_ACTIVITY_NEW_TASK]
     });
-    
     app.startActivity(a);
     console.log("正在进入考勤界面...")
-    sleep(6000)
     
-    if (null != textMatches("申请").clickable(true).findOne(3000)) {
-        console.info("已进入考勤界面")
-        sleep(1000)
-    }
+    textContains("申请").waitFor()
+    console.info("已进入考勤界面")
+    sleep(1000)
 }
 
 
@@ -390,7 +408,7 @@ function clockIn() {
 
     console.log("上班打卡...")
 
-    if (null != textContains("休息").findOne(1000) || null != descContains("休息").findOne(1000)) {
+    if (null != textContains("休息").findOne(1000)) {
         console.info("今日休息")
         home()
         sleep(1000)
@@ -405,16 +423,19 @@ function clockIn() {
         return;
     }
 
-    console.log("等待连接到考勤机：" + NAME_OF_ATTENDANCE_MACHINE + "...")
+    console.log("等待连接到考勤机...")
     sleep(2000)
-
+    
     if (null != textContains("未连接").findOne(1000)) {
         console.error("未连接考勤机，重新进入考勤界面！")
+        back()
+        sleep(2000)
         attendKaoqin()
+        return;
     }
 
-    textContains(NAME_OF_ATTENDANCE_MACHINE).waitFor()
-    console.info("已连接考勤机：" + NAME_OF_ATTENDANCE_MACHINE)
+    textContains("已连接").waitFor()
+    console.info("已连接考勤机")
     sleep(1000)
 
     if (null != textMatches("上班打卡").clickable(true).findOne(1000)) {
@@ -441,7 +462,7 @@ function clockOut() {
 
     console.log("下班打卡...")
 
-    if (null != textContains("休息").findOne(1000) || null != descContains("休息").findOne(1000)) {
+    if (null != textContains("休息").findOne(1000)) {
         console.info("今日休息")
         home()
         sleep(1000)
@@ -459,16 +480,19 @@ function clockOut() {
         }
     }
 
-    console.log("等待连接到考勤机：" + NAME_OF_ATTENDANCE_MACHINE + "...")
+    console.log("等待连接到考勤机...")
     sleep(2000)
     
     if (null != textContains("未连接").findOne(1000)) {
         console.error("未连接考勤机，重新进入考勤界面！")
+        back()
+        sleep(2000)
         attendKaoqin()
+        return;
     }
 
-    textContains(NAME_OF_ATTENDANCE_MACHINE).waitFor()
-    console.info("已连接考勤机：" + NAME_OF_ATTENDANCE_MACHINE)
+    textContains("已连接").waitFor()
+    console.info("已连接考勤机")
     sleep(1000)
 
     if (null != textMatches("下班打卡").clickable(true).findOne(1000)) {
@@ -506,12 +530,12 @@ function lockScreen(){
 
     device.setBrightnessMode(1) // 自动亮度模式
     device.cancelKeepingAwake() // 取消设备常亮
-
+    
     if (isDeviceLocked()) {
         console.info("屏幕已关闭")
     }
     else {
-        console.error("屏幕未关闭，请尝试其他锁屏方案")
+        console.error("屏幕未关闭，请尝试其他锁屏方案，或等待屏幕自动关闭")
     }
 }
 
@@ -598,6 +622,14 @@ function isDeviceLocked() {
     return km.isKeyguardLocked()
 }
 
+// 设置媒体和通知音量
+function setVolume(volume) {
+    device.setMusicVolume(volume)
+    device.setNotificationVolume(volume)
+    console.verbose("媒体音量:" + device.getMusicVolume())
+    console.verbose("通知音量:" + device.getNotificationVolume())
+}
+
 ```
 
 ## 工具介绍
@@ -638,13 +670,23 @@ Tasker 也是一个安卓自动化神器，与 Auto.js 结合使用可胜任日�
 - 回复标题为 「恢复」 的邮件，即可恢复定时打卡功能。
 
 ## 注意事项
-- 首次启动AutoJs时，需要为其开启无障碍权限
+- 首次启动AutoJs时，需要为其开启无障碍权限。
 - 运行脚本前，请在AutoJs菜单栏中（从屏幕左边划出），开启 「通知读取权限」。
 - AutoJs、Tasker可息屏运行，需要在系统设置中开启通知亮屏。
 - 为保证AutoJs、Tasker进程不被系统清理，可调整它们的电池管理策略、加入管理应用的白名单，为其开启前台服务、添加应用锁...
 - 虽然脚本可执行完整的打卡步骤，但推荐开启钉钉的极速打卡功能，在钉钉启动时即可完成打卡，应把后续的步骤视为极速打卡失败后的保险措施。
 
 ## 更新日志
+### 2020-05-06
+<details open>
+<summary></summary>
+
+1. 增加音量上键监听，按下后中断所有子线程，也可以利用回调来进行调试
+2. 不再使用考勤机名称来判断连接状态
+3. 重新进入打卡界面前，先返回上级菜单，以解决顶号登录无法正常连接到考勤机的问题
+4. 启动钉钉时，将媒体音量和通知音量设为0
+</details>
+
 ### 2020-03-15
 <details open>
 <summary></summary>
@@ -732,8 +774,6 @@ function attendKaoqin(){
       sleep(5000)
 }
 ```
-</details>
-
 #### 获取URL的方式如下：
 
 1. 在PC端找到 「智能工作助理」 联系人
@@ -741,6 +781,7 @@ function attendKaoqin(){
 3. 弹出一个二维码。此二维码就是拉起考勤打卡界面的 URL，用自带的相机或其他应用扫描，并在浏览器中打开，即可获得完整URL
 4. 观察获取到的URL，找到 `CorpId=xxxxxxxxxxxxxxxxxxx` ，将CorpId的值填写到的脚本开头的CORP_ID这个常量中
 5. 仅使用 `dingtalk://dingtalkclient/page/link?url=https://attend.dingtalk.com/attend/index.html`，也可以拉起旧版打卡界面，钉钉会自动获取企业的CorpId。如果加入了多个组织，且没有填写CorpId，则在拉起考勤界面时会弹出一个选择组织的对话框。
+</details>
 
 ### 2020-09-11
 <details open>
