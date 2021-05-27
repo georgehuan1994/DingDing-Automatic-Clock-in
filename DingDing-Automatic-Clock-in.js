@@ -1,21 +1,23 @@
 /*
  * @Author: George Huan
  * @Date: 2020-08-03 09:30:30
- * @LastEditTime: 2021-04-29 10:13:56
+ * @LastEditTime: 2021-05-24 10:40:59
  * @Description: DingDing-Automatic-Clock-in (Run on AutoJs)
  * @URL: https://github.com/georgehuan1994/DingDing-Automatic-Clock-in
  */
 
 const ACCOUNT = "钉钉账号"
 const PASSWORD = "钉钉密码"
+
+const QQ = "用于接收打卡结果的QQ号"
 const EMAILL_ADDRESS = "用于接收打卡结果的邮箱地址"
 
-const BUNDLE_ID_DD = "com.alibaba.android.rimet"	// 钉钉
-const BUNDLE_ID_XMSF = "com.xiaomi.xmsf"	// 小米推送服务
-const BUNDLE_ID_MAIL = "com.netease.mail"	// 网易邮箱大师
-const BUNDLE_ID_TASKER = "net.dinglisch.android.taskerm"	// Tasker
-
-const NAME_OF_EMAILL_APP = "网易邮箱大师"	
+const PACKAGE_ID_QQ = "com.tencent.mobileqq"                // QQ
+const PACKAGE_ID_DD = "com.alibaba.android.rimet"	        // 钉钉
+const PACKAGE_ID_XMSF = "com.xiaomi.xmsf"                   // 小米推送服务
+const PACKAGE_ID_TASKER = "net.dinglisch.android.taskerm"	// Tasker
+const PACKAGE_ID_MAIL_163 = "com.netease.mail"	            // 网易邮箱大师
+const PACKAGE_ID_MAIL_ANDROID = "com.android.email"         // 系统内置邮箱
 
 const LOWER_BOUND = 1 * 60 * 1000 // 最小等待时间：1min
 const UPPER_BOUND = 5 * 60 * 1000 // 最大等待时间：5min
@@ -26,19 +28,19 @@ const SCREEN_BRIGHTNESS = 20
 // 是否过滤通知
 const NOTIFICATIONS_FILTER = false; 
 
-// BundleId白名单
-const BUNDLE_ID_WHITE_LIST = [BUNDLE_ID_DD,BUNDLE_ID_XMSF,BUNDLE_ID_MAIL,BUNDLE_ID_TASKER, ]
-
-const WEEK_DAY = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday",]
+// PackageId白名单
+const PACKAGE_ID_WHITE_LIST = [PACKAGE_ID_QQ,PACKAGE_ID_DD,PACKAGE_ID_XMSF,PACKAGE_ID_MAIL_163,PACKAGE_ID_TASKER,]
 
 // 公司的钉钉CorpId，获取方法见 2020-09-24 更新日志。如果只加入了一家公司，可以不填
 const CORP_ID = "" 
 
-// 锁屏意图，配合Tasker完成锁屏动作，具体配置方法见 2021-03-09 更新日志
+// 锁屏意图，配合 Tasker 完成锁屏动作，具体配置方法见 2021-03-09 更新日志
 const ACTION_LOCK_SCREEN = "autojs.intent.action.LOCK_SCREEN"
 
 // 启用音量上键监听，开启后无法通过音量键调整音量！按下音量上键：结束所有子线程
 const OBSERVE_VOLUME_KEY = true
+
+const WEEK_DAY = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday",]
 
 
 // =================== ↓↓↓ 主线程：监听通知 ↓↓↓ ====================
@@ -81,6 +83,7 @@ events.onKeyDown("volume_up", function(event){
 
     // 可以利用回调逐步调试
     // doClock()
+    // sendQQMsg("TestMessage")
     // sendEmail("TestTitle", "TestMessage")
 });
 
@@ -93,12 +96,12 @@ events.onKeyDown("volume_up", function(event){
  */
 function notificationHandler(n) {
     
-    var bundleId = n.getPackageName()    // 获取通知包名
+    var packageId = n.getPackageName()    // 获取通知包名
     var abstract = n.tickerText          // 获取通知摘要
     var text = n.getText()               // 获取通知文本
-
-    // 过滤BundleId白名单之外的应用所发出的通知
-    if (!filterNotification(bundleId, abstract, text)) { 
+    
+    // 过滤 PackageId 白名单之外的应用所发出的通知
+    if (!filterNotification(packageId, abstract, text)) { 
         return;
     }
 
@@ -113,7 +116,7 @@ function notificationHandler(n) {
     }
     
     // 监听文本为 "打卡" 的通知
-    if ((bundleId == BUNDLE_ID_MAIL || bundleId == BUNDLE_ID_XMSF) && text == "打卡") { 
+    if ((packageId == PACKAGE_ID_QQ || packageId == PACKAGE_ID_MAIL_163 || packageId == PACKAGE_ID_XMSF) && text == "打卡") {
         needWaiting = false
         threads.shutDownAll()
         threads.start(function(){
@@ -122,47 +125,56 @@ function notificationHandler(n) {
         return;
     }
     
-    // 监听文本为 "考勤结果" 的通知 
-    if ((bundleId == BUNDLE_ID_MAIL || bundleId == BUNDLE_ID_XMSF) && (text == "Re: 考勤结果" || text == "考勤结果")) {
+    // 监听文本为 "查询" 的通知
+    if ((packageId == PACKAGE_ID_QQ || packageId == PACKAGE_ID_MAIL_163 || packageId == PACKAGE_ID_XMSF) && text == "查询") {
         threads.shutDownAll()
         threads.start(function(){
+            if(packageId == PACKAGE_ID_QQ)
+            sendQQMsg(getStorageData("dingding", "clockResult"))
+            if(packageId == PACKAGE_ID_MAIL_163)
             sendEmail("考勤结果", getStorageData("dingding", "clockResult"))
         })
         return;
     }
 
-    // 监听文本为 "暂停" 的通知 
-    if ((bundleId == BUNDLE_ID_MAIL || bundleId == BUNDLE_ID_XMSF) && text == "暂停") {
+    // 监听文本为 "暂停" 的通知
+    if ((packageId == PACKAGE_ID_QQ || packageId == PACKAGE_ID_MAIL_163 || packageId == PACKAGE_ID_XMSF) && text == "暂停") {
         suspend = true
         console.warn("暂停定时打卡")
         threads.shutDownAll()
         threads.start(function(){
-            sendEmail("操作成功", "已暂停定时打卡功能")
+            if(packageId == PACKAGE_ID_QQ)
+            sendQQMsg("修改成功，已暂停定时打卡功能")
+            if(packageId == PACKAGE_ID_MAIL_163)
+            sendEmail("修改成功", "已暂停定时打卡功能")
         })
         return;
     }
 
-    // 监听文本为 "恢复" 的通知 
-    if ((bundleId == BUNDLE_ID_MAIL || bundleId == BUNDLE_ID_XMSF) && text == "恢复") {
+    // 监听文本为 "恢复" 的通知
+    if ((packageId == PACKAGE_ID_QQ || packageId == PACKAGE_ID_MAIL_163 || packageId == PACKAGE_ID_XMSF) && text == "恢复") {
         suspend = false
         console.warn("恢复定时打卡")
         threads.shutDownAll()
         threads.start(function(){
-            sendEmail("操作成功", "已恢复定时打卡功能")
+            if(packageId == PACKAGE_ID_QQ)
+            sendQQMsg("修改成功，已恢复定时打卡功能")
+            if(packageId == PACKAGE_ID_MAIL_163)
+            sendEmail("修改成功", "已恢复定时打卡功能")
         })
         return;
     }
 
-    if (text == null) {
-        return;
-    }
+    if (text == null) 
+    return;
     
     // 监听钉钉返回的考勤结果
-    if (bundleId == BUNDLE_ID_DD && text.indexOf("考勤打卡") >= 0) { 
+    if (packageId == PACKAGE_ID_DD && text.indexOf("考勤打卡") >= 0) { 
         setStorageData("dingding", "clockResult", text)
         threads.shutDownAll()
-        threads.start(function(){
-            sendEmail("考勤结果", text)
+        threads.start(function() {
+            sendQQMsg(text)
+            // sendEmail("考勤结果", text)
         })
         return;
     }
@@ -207,29 +219,65 @@ function sendEmail(title, message) {
     unlockScreen()      // 解锁屏幕
 
     app.sendEmail({
-        email: [EMAILL_ADDRESS],
-        subject: title,
+        email: [EMAILL_ADDRESS], 
+        subject: title, 
         text: message
     })
     
     console.log("选择邮件应用")
-    waitForActivity("com.android.internal.app.ChooserActivity")// 等待选择应用界面弹窗出现，如果设置了默认应用就注释掉
+    waitForActivity("com.android.internal.app.ChooserActivity") // 等待选择应用界面弹窗出现，如果设置了默认应用就注释掉
     
-    if (null != textMatches(NAME_OF_EMAILL_APP).findOne(1000)) {
-        btn_email = textMatches(NAME_OF_EMAILL_APP).findOnce().parent()
-        btn_email.click()
+    var emailAppName = app.getAppName(PACKAGE_ID_MAIL_163)
+    if (null != emailAppName) {
+        if (null != textMatches(emailAppName).findOne(1000)) {
+            btn_email = textMatches(emailAppName).findOnce().parent()
+            btn_email.click()
+        }
     }
     else {
-        console.error("没有找到" + NAME_OF_EMAILL_APP)
+        console.error("不存在应用：" + PACKAGE_ID_MAIL_163)
         lockScreen()
         return;
     }
 
+    // 网易邮箱大师
     waitForActivity("com.netease.mobimail.activity.MailComposeActivity")
     id("send").findOne().click()
 
+    // 内置电子邮件
+    // waitForActivity("com.kingsoft.mail.compose.ComposeActivity")
+    // id("compose_send_btn").findOne().click()
+
     console.log("正在发送邮件...")
     
+    home()
+    sleep(1000)
+    lockScreen()    // 关闭屏幕
+}
+
+
+/**
+ * @description 发送QQ消息
+ * @param {*} message 消息内容
+ */
+function sendQQMsg(message) {
+
+    console.log("发送QQ消息")
+    
+    brightScreen()      // 唤醒屏幕
+    unlockScreen()      // 解锁屏幕
+
+    app.startActivity({ 
+        action: "android.intent.action.VIEW", 
+        data:"mqq://im/chat?chat_type=wpa&version=1&src_type=web&uin=" + QQ, 
+        packageName: "com.tencent.mobileqq", 
+    });
+    
+    waitForActivity("com.tencent.mobileqq.activity.SplashActivity")
+    
+    id("input").findOne().setText(message)
+    id("fun_btn").findOne().click()
+
     home()
     sleep(1000)
     lockScreen()    // 关闭屏幕
@@ -291,7 +339,7 @@ function holdOn(){
     }
 
     var randomTime = random(LOWER_BOUND, UPPER_BOUND)
-    toastLog(Math.floor(randomTime / 1000) + "秒后启动" + app.getAppName(BUNDLE_ID_DD) + "...")
+    toastLog(Math.floor(randomTime / 1000) + "秒后启动" + app.getAppName(PACKAGE_NAME_DD) + "...")
     sleep(randomTime)
 }
 
@@ -301,14 +349,14 @@ function holdOn(){
  */
 function signIn() {
 
-    app.launchPackage(BUNDLE_ID_DD)
-    console.log("正在启动" + app.getAppName(BUNDLE_ID_DD) + "...")
+    app.launchPackage(PACKAGE_NAME_DD)
+    console.log("正在启动" + app.getAppName(PACKAGE_NAME_DD) + "...")
 
     setVolume(0) // 设备静音
 
     sleep(10000) // 等待钉钉启动
 
-    if (currentPackage() == BUNDLE_ID_DD &&
+    if (currentPackage() == PACKAGE_NAME_DD &&
         currentActivity() == "com.alibaba.android.user.login.SignUpWithPwdActivity") {
         console.info("账号未登录")
 
@@ -327,7 +375,7 @@ function signIn() {
         sleep(3000)
     }
 
-    if (currentPackage() == BUNDLE_ID_DD &&
+    if (currentPackage() == PACKAGE_NAME_DD &&
         currentActivity() != "com.alibaba.android.user.login.SignUpWithPwdActivity") {
         console.info("账号已登录")
         sleep(1000)
@@ -385,13 +433,6 @@ function clockIn() {
 
     console.log("上班打卡...")
 
-    if (null != textContains("休息").findOne(1000)) {
-        console.info("今日休息")
-        home()
-        sleep(1000)
-        return;
-    }
-
     if (null != textContains("已打卡").findOne(1000)) {
         console.info("已打卡")
         toast("已打卡")
@@ -438,25 +479,6 @@ function clockIn() {
 function clockOut() {
 
     console.log("下班打卡...")
-
-    if (null != textContains("休息").findOne(1000)) {
-        console.info("今日休息")
-        home()
-        sleep(1000)
-        return;
-    }
-    
-    if (null != textContains("更新打卡").findOne(1000)) {
-        if (null != textContains("早退").findOne(1000)) {
-            toastLog("早退，更新打卡记录")
-        }
-        else {
-            home()
-            sleep(1000)
-            return;
-        }
-    }
-
     console.log("等待连接到考勤机...")
     sleep(2000)
     
@@ -500,10 +522,10 @@ function lockScreen(){
     // Power()
 
     // 锁屏方案2：No Root
-    press(Math.floor(device.width / 2), Math.floor(device.height * 0.973), 1000) // 小米的快捷手势：长按Home键锁屏
+    // press(Math.floor(device.width / 2), Math.floor(device.height * 0.973), 1000) // 小米的快捷手势：长按Home键锁屏
     
     // 万能锁屏方案：向Tasker发送广播，触发系统锁屏动作。配置方法见 2021-03-09 更新日志
-    // app.sendBroadcast({action: ACTION_LOCK_SCREEN});
+    app.sendBroadcast({action: ACTION_LOCK_SCREEN});
 
     device.setBrightnessMode(1) // 自动亮度模式
     device.cancelKeepingAwake() // 取消设备常亮
@@ -546,7 +568,7 @@ function getCurrentDate(){
 // 通知过滤器
 function filterNotification(bundleId, abstract, text) {
     
-    var check = BUNDLE_ID_WHITE_LIST.some(function(item) {return bundleId == item})
+    var check = PACKAGE_ID_WHITE_LIST.some(function(item) {return bundleId == item})
     
     if (!NOTIFICATIONS_FILTER || check) {
         console.verbose(bundleId)
