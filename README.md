@@ -35,12 +35,12 @@ const PASSWORD = "钉钉密码"
 const QQ = "用于接收打卡结果的QQ号"
 const EMAILL_ADDRESS = "用于接收打卡结果的邮箱地址"
 
-const PACKAGE_ID_QQ = "com.tencent.mobileqq"                // QQ
+const PACKAGE_ID_QQ = "com.tencent.mobileqq"                    // QQ
 const PACKAGE_ID_DD = "com.alibaba.android.rimet"	        // 钉钉
-const PACKAGE_ID_XMSF = "com.xiaomi.xmsf"                   // 小米推送服务
+const PACKAGE_ID_XMSF = "com.xiaomi.xmsf"                       // 小米推送服务
 const PACKAGE_ID_TASKER = "net.dinglisch.android.taskerm"	// Tasker
-const PACKAGE_ID_MAIL_163 = "com.netease.mail"	            // 网易邮箱大师
-const PACKAGE_ID_MAIL_ANDROID = "com.android.email"         // 系统内置邮箱
+const PACKAGE_ID_MAIL_163 = "com.netease.mail"	                // 网易邮箱大师
+const PACKAGE_ID_MAIL_ANDROID = "com.android.email"             // 系统内置邮箱
 
 const LOWER_BOUND = 1 * 60 * 1000 // 最小等待时间：1min
 const UPPER_BOUND = 5 * 60 * 1000 // 最大等待时间：5min
