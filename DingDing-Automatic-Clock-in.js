@@ -339,7 +339,7 @@ function holdOn(){
     }
 
     var randomTime = random(LOWER_BOUND, UPPER_BOUND)
-    toastLog(Math.floor(randomTime / 1000) + "秒后启动" + app.getAppName(PACKAGE_NAME_DD) + "...")
+    toastLog(Math.floor(randomTime / 1000) + "秒后启动" + app.getAppName(PACKAGE_ID_DD) + "...")
     sleep(randomTime)
 }
 
@@ -349,14 +349,14 @@ function holdOn(){
  */
 function signIn() {
 
-    app.launchPackage(PACKAGE_NAME_DD)
-    console.log("正在启动" + app.getAppName(PACKAGE_NAME_DD) + "...")
+    app.launchPackage(PACKAGE_ID_DD)
+    console.log("正在启动" + app.getAppName(PACKAGE_ID_DD) + "...")
 
     setVolume(0) // 设备静音
 
     sleep(10000) // 等待钉钉启动
 
-    if (currentPackage() == PACKAGE_NAME_DD &&
+    if (currentPackage() == PACKAGE_ID_DD &&
         currentActivity() == "com.alibaba.android.user.login.SignUpWithPwdActivity") {
         console.info("账号未登录")
 
@@ -375,7 +375,7 @@ function signIn() {
         sleep(3000)
     }
 
-    if (currentPackage() == PACKAGE_NAME_DD &&
+    if (currentPackage() == PACKAGE_ID_DD &&
         currentActivity() != "com.alibaba.android.user.login.SignUpWithPwdActivity") {
         console.info("账号已登录")
         sleep(1000)
