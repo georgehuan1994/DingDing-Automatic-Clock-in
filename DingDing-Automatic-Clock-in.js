@@ -13,9 +13,9 @@ const QQ = "用于接收打卡结果的QQ号"
 const EMAILL_ADDRESS = "用于接收打卡结果的邮箱地址"
 
 const PACKAGE_ID_QQ = "com.tencent.mobileqq"                // QQ
-const PACKAGE_ID_DD = "com.alibaba.android.rimet"	        // 钉钉
+const PACKAGE_ID_DD = "com.alibaba.android.rimet"           // 钉钉
 const PACKAGE_ID_XMSF = "com.xiaomi.xmsf"                   // 小米推送服务
-const PACKAGE_ID_TASKER = "net.dinglisch.android.taskerm"	// Tasker
+const PACKAGE_ID_TASKER = "net.dinglisch.android.taskerm"   // Tasker
 const PACKAGE_ID_MAIL_163 = "com.netease.mail"	            // 网易邮箱大师
 const PACKAGE_ID_MAIL_ANDROID = "com.android.email"         // 系统内置邮箱
 
@@ -96,9 +96,9 @@ events.onKeyDown("volume_up", function(event){
  */
 function notificationHandler(n) {
     
-    var packageId = n.getPackageName()    // 获取通知包名
-    var abstract = n.tickerText          // 获取通知摘要
-    var text = n.getText()               // 获取通知文本
+    var packageId = n.getPackageName()  // 获取通知包名
+    var abstract = n.tickerText         // 获取通知摘要
+    var text = n.getText()              // 获取通知文本
     
     // 过滤 PackageId 白名单之外的应用所发出的通知
     if (!filterNotification(packageId, abstract, text)) { 
@@ -114,9 +114,16 @@ function notificationHandler(n) {
         })
         return;
     }
-    
+
+    if(packageId != PACKAGE_ID_QQ
+    && packageId != PACKAGE_ID_DD
+    && packageId != PACKAGE_ID_XMSF
+    && packageId != PACKAGE_ID_MAIL_163) {
+        return;
+    }
+
     // 监听文本为 "打卡" 的通知
-    if ((packageId == PACKAGE_ID_QQ || packageId == PACKAGE_ID_MAIL_163 || packageId == PACKAGE_ID_XMSF) && text == "打卡") {
+    if (packageId != PACKAGE_ID_DD && text == "打卡") {
         needWaiting = false
         threads.shutDownAll()
         threads.start(function(){
@@ -126,7 +133,7 @@ function notificationHandler(n) {
     }
     
     // 监听文本为 "查询" 的通知
-    if ((packageId == PACKAGE_ID_QQ || packageId == PACKAGE_ID_MAIL_163 || packageId == PACKAGE_ID_XMSF) && text == "查询") {
+    if (packageId != PACKAGE_ID_DD && text == "查询") {
         threads.shutDownAll()
         threads.start(function(){
             if(packageId == PACKAGE_ID_QQ)
@@ -138,7 +145,7 @@ function notificationHandler(n) {
     }
 
     // 监听文本为 "暂停" 的通知
-    if ((packageId == PACKAGE_ID_QQ || packageId == PACKAGE_ID_MAIL_163 || packageId == PACKAGE_ID_XMSF) && text == "暂停") {
+    if (packageId != PACKAGE_ID_DD && text == "暂停") {
         suspend = true
         console.warn("暂停定时打卡")
         threads.shutDownAll()
@@ -152,7 +159,7 @@ function notificationHandler(n) {
     }
 
     // 监听文本为 "恢复" 的通知
-    if ((packageId == PACKAGE_ID_QQ || packageId == PACKAGE_ID_MAIL_163 || packageId == PACKAGE_ID_XMSF) && text == "恢复") {
+    if (packageId != PACKAGE_ID_DD && text == "恢复") {
         suspend = false
         console.warn("恢复定时打卡")
         threads.shutDownAll()
@@ -273,8 +280,8 @@ function sendQQMsg(message) {
         packageName: "com.tencent.mobileqq", 
     });
     
-    waitForActivity("com.tencent.mobileqq.activity.SplashActivity")
-    
+    // waitForActivity("com.tencent.mobileqq.activity.SplashActivity")
+
     id("input").findOne().setText(message)
     id("fun_btn").findOne().click()
 
@@ -316,14 +323,16 @@ function unlockScreen() {
 
     console.log("解锁屏幕")
     
-    gesture(320,[device.width / 2, device.height * 0.9],[device.width / 2, device.height * 0.1]) // 上滑解锁
-    sleep(1000) // 等待解锁动画完成
-    home()
-    sleep(1000) // 等待返回动画完成
-    
     if (isDeviceLocked()) {
-        console.error("上滑解锁失败，请调整gesture参数，或使用其他解锁方案！")
-        exit()
+        gesture(320,[device.width / 2, device.height * 0.9], [device.width / 2, device.height * 0.1]) // 上滑解锁，如果解锁失败请调整此方法中的参数 gesture(毫秒, [x1,y1], [x2,y2])
+        sleep(1000) // 等待解锁动画完成
+        home()
+        sleep(1000) // 等待返回动画完成
+    }
+
+    if (isDeviceLocked()) {
+        console.error("上滑解锁失败，请调整gesture参数！")
+        return;
     }
     console.info("屏幕已解锁")
 }
