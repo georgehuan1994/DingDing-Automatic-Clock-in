@@ -24,7 +24,7 @@
 /*
  * @Author: George Huan
  * @Date: 2020-08-03 09:30:30
- * @LastEditTime: 2021-05-24 10:40:59
+ * @LastEditTime: 2021-07-07 19:26:00
  * @Description: DingDing-Automatic-Clock-in (Run on AutoJs)
  * @URL: https://github.com/georgehuan1994/DingDing-Automatic-Clock-in
  */
@@ -400,6 +400,10 @@ function signIn() {
         password.setText(PASSWORD)
         console.log("输入密码")
         
+        var privacy = id("cb_privacy").findOne()
+        privacy.click()
+        console.log("同意隐私协议")
+        
         var btn_login = id("btn_next").findOne()
         btn_login.click()
         console.log("正在登陆...")
@@ -532,7 +536,11 @@ function clockOut() {
         console.log("按下打卡按钮")
         sleep(1000)
     }
-
+    else {
+        click(device.width / 2, device.height * 0.560)
+        console.log("点击打卡按钮坐标")
+    }
+    
     if (null != textContains("早退打卡").clickable(true).findOne(1000)) {
         className("android.widget.Button").text("早退打卡").clickable(true).findOnce().parent().click()
         console.warn("早退打卡")
@@ -708,6 +716,13 @@ Tasker 也是一个安卓自动化神器，与 Auto.js 结合使用可胜任日�
 - 虽然脚本可执行完整的打卡步骤，但推荐开启钉钉的极速打卡功能，在钉钉启动时即可完成打卡，应把后续的步骤视为极速打卡失败后的保险措施。
 
 ## 更新日志
+### 2021-07-07
+<details open>
+<summary></summary>
+
+1. 登录流程自动同意隐私协议
+</details>
+
 ### 2021-05-27
 <details open>
 <summary></summary>
