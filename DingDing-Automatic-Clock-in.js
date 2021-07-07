@@ -1,7 +1,7 @@
 /*
  * @Author: George Huan
  * @Date: 2020-08-03 09:30:30
- * @LastEditTime: 2021-05-24 10:40:59
+ * @LastEditTime: 2021-07-07 19:26:00
  * @Description: DingDing-Automatic-Clock-in (Run on AutoJs)
  * @URL: https://github.com/georgehuan1994/DingDing-Automatic-Clock-in
  */
@@ -377,6 +377,10 @@ function signIn() {
         password.setText(PASSWORD)
         console.log("输入密码")
         
+        var privacy = id("cb_privacy").findOne()
+        privacy.click()
+        console.log("同意隐私协议")
+        
         var btn_login = id("btn_next").findOne()
         btn_login.click()
         console.log("正在登陆...")
@@ -509,7 +513,11 @@ function clockOut() {
         console.log("按下打卡按钮")
         sleep(1000)
     }
-
+    else {
+        click(device.width / 2, device.height * 0.560)
+        console.log("点击打卡按钮坐标")
+    }
+    
     if (null != textContains("早退打卡").clickable(true).findOne(1000)) {
         className("android.widget.Button").text("早退打卡").clickable(true).findOnce().parent().click()
         console.warn("早退打卡")
