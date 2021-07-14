@@ -49,7 +49,7 @@ const UPPER_BOUND = 5 * 60 * 1000 // 最大等待时间：5min
 const SCREEN_BRIGHTNESS = 20    
 
 // 是否过滤通知
-const NOTIFICATIONS_FILTER = false; 
+const NOTIFICATIONS_FILTER = false
 
 // PackageId白名单
 const PACKAGE_ID_WHITE_LIST = [PACKAGE_ID_QQ,PACKAGE_ID_DD,PACKAGE_ID_XMSF,PACKAGE_ID_MAIL_163,PACKAGE_ID_TASKER,]
@@ -60,7 +60,7 @@ const CORP_ID = ""
 // 锁屏意图，配合 Tasker 完成锁屏动作，具体配置方法见 2021-03-09 更新日志
 const ACTION_LOCK_SCREEN = "autojs.intent.action.LOCK_SCREEN"
 
-// 启用音量上键监听，开启后无法通过音量键调整音量！按下音量上键：结束所有子线程
+// 监听音量+键，开启后无法通过音量+键调整音量，按下音量+键：结束所有子线程
 const OBSERVE_VOLUME_KEY = true
 
 const WEEK_DAY = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday",]
@@ -95,17 +95,17 @@ if (OBSERVE_VOLUME_KEY) {
     events.observeKey()
 };
     
-// 监听音量上键
+// 监听音量+键
 events.onKeyDown("volume_up", function(event){
     threads.shutDownAll()
     device.setBrightnessMode(1)
     device.cancelKeepingAwake()
-    toast("All sub threads have been shut down.")
+    toast("已中断所有子线程！")
 
-    // 可以利用回调逐步调试
+    // 可以在此调试各个方法
     // doClock()
-    // sendQQMsg("TestMessage")
-    // sendEmail("TestTitle", "TestMessage")
+    // sendQQMsg("测试文本")
+    // sendEmail("测试主题", "测试文本")
 });
 
 toastLog("监听中，请在日志中查看记录的通知及其内容")
@@ -328,6 +328,9 @@ function brightScreen() {
         device.wakeUpIfNeeded()
         brightScreen()
     }
+    else {
+        console.info("设备已唤醒")
+    }
     sleep(1000)
 }
 
@@ -533,7 +536,7 @@ function clockOut() {
         click(device.width / 2, device.height * 0.560)
         console.log("点击打卡按钮坐标")
     }
-    
+
     if (null != textContains("早退打卡").clickable(true).findOne(1000)) {
         className("android.widget.Button").text("早退打卡").clickable(true).findOnce().parent().click()
         console.warn("早退打卡")
@@ -661,7 +664,6 @@ function setVolume(volume) {
     console.verbose("媒体音量:" + device.getMusicVolume())
     console.verbose("通知音量:" + device.getNotificationVolume())
 }
-
 ```
 
 ## 工具介绍
