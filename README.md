@@ -1,8 +1,8 @@
 ## DingDing-Automatic-Clock-in
-<img width="275" src="https://github.com/georgehuan1994/DingDing-Automatic-Clock-in/blob/master/图片/截图_004.jpg"/> <img width="275" src="https://github.com/georgehuan1994/DingDing-Automatic-Clock-in/blob/master/图片/Screenshot_2020-10-29-19-29-35-361_org.autojs.autojs.jpg"/> <img width="275"  src="https://github.com/georgehuan1994/DingDing-Automatic-Clock-in/blob/master/图片/Scrennshot_20201231094431.png"/>
+<img width="275" src="https://user-images.githubusercontent.com/49583943/125551736-ce5ff935-cd1b-4f75-883c-4e0ddc8f1746.png"/> <img width="275" src="https://user-images.githubusercontent.com/49583943/125551796-35325ae7-df14-4758-a555-4d410d58ffaf.png"/> <img width="275"  src="https://user-images.githubusercontent.com/49583943/125551816-6d372320-f58f-4787-840f-3490cf3a472c.png"/>
 
 ## 简介
-钉钉全自动打卡、远程打卡脚本，免Root，基于Auto.js，适用于蓝牙考勤机。
+钉钉全自动打卡、远程打卡脚本，免root，基于auto.js，适用于蓝牙考勤机。
 
 ## 功能
 - 定时打卡
@@ -89,8 +89,6 @@ events.on("notification", function(n) {
     notificationHandler(n)
 });
 
-toastLog("监听中，请在日志中查看记录的通知及其内容")
-
 events.setKeyInterceptionEnabled("volume_up", OBSERVE_VOLUME_KEY)
 
 if (OBSERVE_VOLUME_KEY) {
@@ -109,6 +107,8 @@ events.onKeyDown("volume_up", function(event){
     // sendQQMsg("TestMessage")
     // sendEmail("TestTitle", "TestMessage")
 });
+
+toastLog("监听中，请在日志中查看记录的通知及其内容")
 
 // =================== ↑↑↑ 主线程：监听通知 ↑↑↑ =====================
 
@@ -135,13 +135,6 @@ function notificationHandler(n) {
         threads.start(function(){
             doClock()
         })
-        return;
-    }
-
-    if(packageId != PACKAGE_ID_QQ
-    && packageId != PACKAGE_ID_DD
-    && packageId != PACKAGE_ID_XMSF
-    && packageId != PACKAGE_ID_MAIL_163) {
         return;
     }
 
@@ -677,7 +670,7 @@ Auto.js是利用安卓系统的 「无障碍服务」 实现类似于按键精�
 
 与 「按键精灵」 不同的是，它的模拟动作并不是简单的使用在界面定坐标点来实现，而是找窗口句柄来实现的。
 
-免费版：[Auto.js 4.1.1a Alpha2-armeabi-v7a-release](https://www.lanzous.com/i56aexi "Auto.js 4.1.1a Alpha2-armeabi-v7a-release")
+免费版：[Auto.js 4.1.1a Alpha2-armeabi-v7a-release](https://github.com/georgehuan1994/DingDing-Automatic-Clock-in/raw/master/Autojs%204.1.1a%20Alpha2-armeabi-v7a-release.apk "Auto.js 4.1.1a Alpha2-armeabi-v7a-release")
 
 github：https://github.com/hyb1996/Auto.js
 
