@@ -39,7 +39,7 @@ const PACKAGE_ID_QQ = "com.tencent.mobileqq"                // QQ
 const PACKAGE_ID_DD = "com.alibaba.android.rimet"           // 钉钉
 const PACKAGE_ID_XMSF = "com.xiaomi.xmsf"                   // 小米推送服务
 const PACKAGE_ID_TASKER = "net.dinglisch.android.taskerm"   // Tasker
-const PACKAGE_ID_MAIL_163 = "com.netease.mail"	            // 网易邮箱大师
+const PACKAGE_ID_MAIL_163 = "com.netease.mail"              // 网易邮箱大师
 const PACKAGE_ID_MAIL_ANDROID = "com.android.email"         // 系统内置邮箱
 
 const LOWER_BOUND = 1 * 60 * 1000 // 最小等待时间：1min
@@ -49,7 +49,7 @@ const UPPER_BOUND = 5 * 60 * 1000 // 最大等待时间：5min
 const SCREEN_BRIGHTNESS = 20    
 
 // 是否过滤通知
-const NOTIFICATIONS_FILTER = false
+const NOTIFICATIONS_FILTER = true
 
 // PackageId白名单
 const PACKAGE_ID_WHITE_LIST = [PACKAGE_ID_QQ,PACKAGE_ID_DD,PACKAGE_ID_XMSF,PACKAGE_ID_MAIL_163,PACKAGE_ID_TASKER,]
@@ -68,9 +68,16 @@ const WEEK_DAY = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","S
 
 // =================== ↓↓↓ 主线程：监听通知 ↓↓↓ ====================
 
-var suspend = false
-var needWaiting = true
 var currentDate = new Date()
+
+// 是否暂停定时打卡
+var suspend = false
+
+// 本次打开钉钉前是否需要等待
+var needWaiting = true
+
+// 运行日志路径
+var globalLogFilePath = "/sdcard/脚本/Archive/" + getCurrentDate() + "-log.txt"
 
 // 检查无障碍权限
 auto.waitFor("normal")
@@ -105,7 +112,7 @@ events.onKeyDown("volume_up", function(event){
     // 可以在此调试各个方法
     // doClock()
     // sendQQMsg("测试文本")
-    // sendEmail("测试主题", "测试文本")
+    // sendEmail("测试主题", "测试文本", null)
 });
 
 toastLog("监听中，请在日志中查看记录的通知及其内容")
@@ -138,54 +145,59 @@ function notificationHandler(n) {
         return;
     }
 
-    // 监听文本为 "打卡" 的通知
-    if (packageId != PACKAGE_ID_DD && text == "打卡") {
-        needWaiting = false
-        threads.shutDownAll()
-        threads.start(function(){
-            doClock()
-        })
-        return;
-    }
-    
-    // 监听文本为 "查询" 的通知
-    if (packageId != PACKAGE_ID_DD && text == "查询") {
-        threads.shutDownAll()
-        threads.start(function(){
-            if(packageId == PACKAGE_ID_QQ)
-            sendQQMsg(getStorageData("dingding", "clockResult"))
-            if(packageId == PACKAGE_ID_MAIL_163)
-            sendEmail("考勤结果", getStorageData("dingding", "clockResult"))
-        })
-        return;
-    }
+    switch(text) {
+        
+        case "打卡": // 监听文本为 "打卡" 的通知
+            needWaiting = false
+            threads.shutDownAll()
+            threads.start(function(){
+                doClock()
+            })
+            break;
 
-    // 监听文本为 "暂停" 的通知
-    if (packageId != PACKAGE_ID_DD && text == "暂停") {
-        suspend = true
-        console.warn("暂停定时打卡")
-        threads.shutDownAll()
-        threads.start(function(){
-            if(packageId == PACKAGE_ID_QQ)
-            sendQQMsg("修改成功，已暂停定时打卡功能")
-            if(packageId == PACKAGE_ID_MAIL_163)
-            sendEmail("修改成功", "已暂停定时打卡功能")
-        })
-        return;
-    }
+        case "查询": // 监听文本为 "查询" 的通知
+            threads.shutDownAll()
+            threads.start(function(){
+                if(packageId == PACKAGE_ID_QQ)
+                    sendQQMsg(getStorageData("dingding", "clockResult"))
+                if(packageId == PACKAGE_ID_MAIL_163)
+                    sendEmail("考勤结果", getStorageData("dingding", "clockResult"), null)
+            })
+            break;
 
-    // 监听文本为 "恢复" 的通知
-    if (packageId != PACKAGE_ID_DD && text == "恢复") {
-        suspend = false
-        console.warn("恢复定时打卡")
-        threads.shutDownAll()
-        threads.start(function(){
-            if(packageId == PACKAGE_ID_QQ)
-            sendQQMsg("修改成功，已恢复定时打卡功能")
-            if(packageId == PACKAGE_ID_MAIL_163)
-            sendEmail("修改成功", "已恢复定时打卡功能")
-        })
-        return;
+        case "暂停": // 监听文本为 "暂停" 的通知
+            suspend = true
+            console.warn("暂停定时打卡")
+            threads.shutDownAll()
+            threads.start(function(){
+                if(packageId == PACKAGE_ID_QQ)
+                    sendQQMsg("修改成功，已暂停定时打卡功能")
+                if(packageId == PACKAGE_ID_MAIL_163)
+                    sendEmail("修改成功", "已暂停定时打卡功能", null)
+            })
+            break;
+
+        case "恢复": // 监听文本为 "恢复" 的通知
+            suspend = false
+            console.warn("恢复定时打卡")
+            threads.shutDownAll()
+            threads.start(function(){
+                if(packageId == PACKAGE_ID_QQ)
+                    sendQQMsg("修改成功，已恢复定时打卡功能")
+                if(packageId == PACKAGE_ID_MAIL_163)
+                    sendEmail("修改成功", "已恢复定时打卡功能", null)
+            })
+            break;
+
+        case "日志": // 监听文本为 "日志" 的通知
+            threads.shutDownAll()
+            threads.start(function(){
+                sendEmail("获取日志", globalLogFilePath, globalLogFilePath)
+            })
+            break;
+
+        default:
+            break;
     }
 
     if (text == null) 
@@ -197,7 +209,7 @@ function notificationHandler(n) {
         threads.shutDownAll()
         threads.start(function() {
             sendQQMsg(text)
-            // sendEmail("考勤结果", text)
+            // sendEmail("考勤结果", text, null)
         })
         return;
     }
@@ -231,8 +243,9 @@ function doClock() {
 
 /**
  * @description 发送邮件流程
- * @param {*} title 邮件主题
- * @param {*} message 邮件正文
+ * @param {string} title 邮件主题
+ * @param {string} message 邮件正文
+ * @param {string} attachFilePath 要发送的附件路径
  */
 function sendEmail(title, message) {
 
@@ -241,11 +254,18 @@ function sendEmail(title, message) {
     brightScreen()      // 唤醒屏幕
     unlockScreen()      // 解锁屏幕
 
-    app.sendEmail({
-        email: [EMAILL_ADDRESS], 
-        subject: title, 
-        text: message
-    })
+    if(attachFilePath != null && files.exists(attachFilePath)) {
+        console.info(attachFilePath)
+        app.sendEmail({
+            email: [EMAILL_ADDRESS], subject: title, text: message, attachment: attachFilePath
+        })
+    }
+    else {
+        console.error(attachFilePath)
+        app.sendEmail({
+            email: [EMAILL_ADDRESS], subject: title, text: message
+        })
+    }
     
     console.log("选择邮件应用")
     waitForActivity("com.android.internal.app.ChooserActivity") // 等待选择应用界面弹窗出现，如果设置了默认应用就注释掉
@@ -274,14 +294,14 @@ function sendEmail(title, message) {
     console.log("正在发送邮件...")
     
     home()
-    sleep(1000)
+    sleep(2000)
     lockScreen()    // 关闭屏幕
 }
 
 
 /**
  * @description 发送QQ消息
- * @param {*} message 消息内容
+ * @param {string} message 消息内容
  */
 function sendQQMsg(message) {
 
@@ -318,9 +338,6 @@ function brightScreen() {
     device.setBrightness(SCREEN_BRIGHTNESS)
     device.wakeUpIfNeeded() // 唤醒设备
     device.keepScreenOn()   // 保持亮屏
-
-    console.info("设备已唤醒")
-
     sleep(1000) // 等待屏幕亮起
     
     if (!device.isScreenOn()) {
@@ -343,14 +360,26 @@ function unlockScreen() {
     console.log("解锁屏幕")
     
     if (isDeviceLocked()) {
-        gesture(320,[device.width / 2, device.height * 0.9], [device.width / 2, device.height * 0.1]) // 上滑解锁，如果解锁失败请调整此方法中的参数 gesture(毫秒, [x1,y1], [x2,y2])
+
+        gesture(
+            320, // 滑动时间：毫秒
+            [
+                device.width  * 0.5,    // 滑动起点 x 坐标：屏幕宽度的一半
+                device.height * 0.9     // 滑动起点 y 坐标：距离屏幕底部 10% 的位置，华为系统需要往上一些
+            ],
+            [
+                device.width / 2,       // 滑动终点 x 坐标：屏幕宽度的一半
+                device.height * 0.1     // 滑动终点 y 坐标：距离屏幕顶部 10% 的位置
+            ]
+        )
+
         sleep(1000) // 等待解锁动画完成
         home()
         sleep(1000) // 等待返回动画完成
     }
 
     if (isDeviceLocked()) {
-        console.error("上滑解锁失败，请调整gesture参数！")
+        console.error("上滑解锁失败，请按脚本中的注释调整 gesture(time, [x1,y1], [x2,y2]) 方法的参数！")
         return;
     }
     console.info("屏幕已解锁")
@@ -603,7 +632,12 @@ function getCurrentDate(){
 
 // 通知过滤器
 function filterNotification(bundleId, abstract, text) {
-    
+    if (text != null) {
+        if (text.indexOf("活动") >= 0) {
+            return false
+        }
+    }
+
     var check = PACKAGE_ID_WHITE_LIST.some(function(item) {return bundleId == item})
     
     if (!NOTIFICATIONS_FILTER || check) {
@@ -711,6 +745,15 @@ Tasker 也是一个安卓自动化神器，与 Auto.js 结合使用可胜任日�
 - 虽然脚本可执行完整的打卡步骤，但推荐开启钉钉的极速打卡功能，在钉钉启动时即可完成打卡，应把后续的步骤视为极速打卡失败后的保险措施。
 
 ## 更新日志
+### 2021-09-02
+<details open>
+<summary></summary>
+
+1. 新增获取日志功能，发送 「日志」，可将运行日志作为邮件附件发送（最好使用内置邮件）
+2. 优化通知过滤器，过滤 Tasker 发出的无效通知
+</details>
+
+
 ### 2021-07-07
 <details open>
 <summary></summary>
@@ -754,9 +797,9 @@ Tasker 也是一个安卓自动化神器，与 Auto.js 结合使用可胜任日�
 1. 移除 「结束钉钉」、「检查更新」 这个两个过程，使用最近一次监测到的正在运行的应用的包名进行判断
 2. 补充一个万能锁屏方案：向Tasker发送广播，触发Tasker中的系统锁屏操作。
 
- 	- 在Tasker中添加一个任务，在任务中添加操作 「系统锁屏（关闭屏幕）」
- 	- 在Tasker中添加一个事件类型的配置文件，事件类别：系统-收到的意图
- 	- 在事件操作中填写：autojs.intent.action.LOCK_SCREEN ，保持发送方与接收方的action一致即可
+    - 在Tasker中添加一个任务，在任务中添加操作 「系统锁屏（关闭屏幕）」
+    - 在Tasker中添加一个事件类型的配置文件，事件类别：系统-收到的意图
+    - 在事件操作中填写：autojs.intent.action.LOCK_SCREEN ，保持发送方与接收方的action一致即可
 
 ```javascript
 app.sendBroadcast({
