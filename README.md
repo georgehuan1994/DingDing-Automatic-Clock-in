@@ -247,7 +247,7 @@ function doClock() {
  * @param {string} message 邮件正文
  * @param {string} attachFilePath 要发送的附件路径
  */
-function sendEmail(title, message) {
+function sendEmail(title, message, attachFilePath) {
 
     console.log("开始发送邮件流程！")
 
