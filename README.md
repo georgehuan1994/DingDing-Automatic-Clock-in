@@ -2,7 +2,7 @@
 <img width="275" src="https://user-images.githubusercontent.com/49583943/125551736-ce5ff935-cd1b-4f75-883c-4e0ddc8f1746.png"/> <img width="275" src="https://user-images.githubusercontent.com/49583943/125551796-35325ae7-df14-4758-a555-4d410d58ffaf.png"/> <img width="275"  src="https://user-images.githubusercontent.com/49583943/125551816-6d372320-f58f-4787-840f-3490cf3a472c.png"/>
 
 ## 简介
-钉钉全自动打卡、远程打卡脚本，免root，基于auto.js，适用于蓝牙考勤机。
+钉钉全自动打卡 + 远程打卡脚本，免root，基于auto.js，适用于蓝牙考勤机。
 
 ## 功能
 - 定时打卡
@@ -15,7 +15,7 @@
 - 一款通讯应用（示例脚本中使用的是 QQ 和 网易邮箱大师，彼此互为备用方案）
 
 ## 原理
-通过 auto.js 脚本监听本机通知，在Tasker 中创建定时任务，发出通知，或在另一设备上发送消息到本机，即可触发脚本中的打卡进程，实现定时打卡和远程打卡。
+通过 auto.js 脚本监听本机通知，在 Tasker 中创建定时任务，发出通知，或在另一设备上发送消息到本机，即可触发脚本中的打卡进程，实现定时打卡和远程打卡。
 
 同理，监听到钉钉发出的打卡成功通知后，将通知文本通过 QQ消息 或 邮件正文 发送，实现发送考勤结果的功能。
 
@@ -704,7 +704,7 @@ function setVolume(volume) {
 ### Auto.js
 Auto.js是利用安卓系统的 「无障碍服务」 实现类似于按键精灵一样，可以通过代码模拟一系列界面动作的辅助工作。
 
-与 「按键精灵」 不同的是，它的模拟动作并不是简单的使用在界面定坐标点来实现，而是找窗口句柄来实现的。
+与 「按键精灵」 不同的是，它的模拟动作并不是简单的使用在界面定坐标点来实现，而是找控件来实现的。
 
 免费版：[Auto.js 4.1.1a Alpha2-armeabi-v7a-release](https://github.com/georgehuan1994/DingDing-Automatic-Clock-in/raw/master/Autojs%204.1.1a%20Alpha2-armeabi-v7a-release.apk "Auto.js 4.1.1a Alpha2-armeabi-v7a-release")
 
