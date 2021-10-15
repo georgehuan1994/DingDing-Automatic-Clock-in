@@ -19,7 +19,8 @@
 
 同理，监听到钉钉发出的打卡成功通知后，将通知文本通过 QQ消息 或 邮件正文 发送，实现发送考勤结果的功能。
 
-![时序图](https://user-images.githubusercontent.com/49583943/137147446-0d757e94-f231-4b04-8795-9292c3ba5c67.jpg)
+![fP8nRzD05CVt-nGdioH3qnaFg4akJ0KfAcnTNkn7ujgv2tTdLGWXLLILQ082qG5K8g8WWXXQkbM88F5bOYTCV0LyjXMvpi20vE7T-__k__xtv1sbGUgm7n3bUtm04lgq0uxVbIBaRbC4Gj9RhLQhmPe5eWVSFPIUriYfbY6IWgRmSOZSGVgKrAKKXva7Gnpi-KyQGGBN7IraGqWNvQQuw](https://user-images.githubusercontent.com/49583943/137491064-95a2f72c-08d8-4bfc-b887-5a2160bfbf7e.png)
+
 
 ## 脚本
 ```javascript
@@ -931,6 +932,9 @@ function attendKaoqin(){
 
 </blockquote>
 
+相关项目：[996 薪资计算助手](https://github.com/georgehuan1994/996-Salary-Calculator)
+
 ---
 
     如果觉得还不错的话，就点击右上角, 给我个Star ⭐️ 鼓励一下我吧~
+    
