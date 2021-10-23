@@ -287,21 +287,21 @@ function sendEmail(title, message, attachFilePath) {
     }
 
     // 网易邮箱大师
-	var versoin = getPackageVersion(PACKAGE_ID_MAIL_163)
-	console.log("应用版本：" + versoin)
-	var sp = versoin.split(".")
-	if (sp[0] == 6) {
-    	// 网易邮箱大师 6
+    var versoin = getPackageVersion(PACKAGE_ID_MAIL_163)
+    console.log("应用版本：" + versoin)
+    var sp = versoin.split(".")
+    if (sp[0] == 6) {
+        // 网易邮箱大师 6
         waitForActivity("com.netease.mobimail.activity.MailComposeActivity")
-    	id("send").findOne().click()
-	}
-	else {
-    	// 网易邮箱大师 7
+        id("send").findOne().click()
+    }
+    else {
+        // 网易邮箱大师 7
         waitForActivity("com.netease.mobimail.module.mailcompose.MailComposeActivity")
-   		var input_address = id("input").findOne()
-    	if (null == input_address.getText()) {
-        	input_address.setText(EMAILL_ADDRESS)
-    	}
+        var input_address = id("input").findOne()
+        if (null == input_address.getText()) {
+            input_address.setText(EMAILL_ADDRESS)
+        }
         id("iv_arrow").findOne().click()
         sleep(1000)
         id("img_send_bg").findOne().click()
@@ -765,6 +765,13 @@ Tasker 也是一个安卓自动化神器，与 Auto.js 结合使用可胜任日�
 - 虽然脚本可执行完整的打卡步骤，但推荐开启钉钉的极速打卡功能，在钉钉启动时即可完成打卡，应把后续的步骤视为极速打卡失败后的保险措施。
 
 ## 更新日志
+### 2021-10-23
+<details open>
+<summary></summary>
+
+1. 适配网易邮箱大师7.0
+</details>
+
 ### 2021-09-02
 <details open>
 <summary></summary>
