@@ -1,7 +1,8 @@
+```javascript
 /*
  * @Author: George Huan
  * @Date: 2020-08-03 09:30:30
- * @LastEditTime: 2021-09-02 15:03:40
+ * @LastEditTime: 2021-10-23 17:45:40
  * @Description: DingDing-Automatic-Clock-in (Run on AutoJs)
  * @URL: https://github.com/georgehuan1994/DingDing-Automatic-Clock-in
  */
@@ -261,9 +262,26 @@ function sendEmail(title, message, attachFilePath) {
     }
 
     // 网易邮箱大师
-    waitForActivity("com.netease.mobimail.activity.MailComposeActivity")
-    id("send").findOne().click()
-
+	var versoin = getPackageVersion(PACKAGE_ID_MAIL_163)
+	console.log("应用版本：" + versoin)
+	var sp = versoin.split(".")
+	if (sp[0] == 6) {
+    	// 网易邮箱大师 6
+        waitForActivity("com.netease.mobimail.activity.MailComposeActivity")
+    	id("send").findOne().click()
+	}
+	else {
+    	// 网易邮箱大师 7
+        waitForActivity("com.netease.mobimail.module.mailcompose.MailComposeActivity")
+   		var input_address = id("input").findOne()
+    	if (null == input_address.getText()) {
+        	input_address.setText(EMAILL_ADDRESS)
+    	}
+        id("iv_arrow").findOne().click()
+        sleep(1000)
+        id("img_send_bg").findOne().click()
+    }
+    
     // 内置电子邮件
     // waitForActivity("com.kingsoft.mail.compose.ComposeActivity")
     // id("compose_send_btn").findOne().click()
