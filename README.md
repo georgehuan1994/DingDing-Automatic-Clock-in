@@ -1,5 +1,7 @@
 ## DingDing-Automatic-Clock-in
-<img width="275" src="https://user-images.githubusercontent.com/49583943/125551736-ce5ff935-cd1b-4f75-883c-4e0ddc8f1746.png"/> <img width="275" src="https://user-images.githubusercontent.com/49583943/125551796-35325ae7-df14-4758-a555-4d410d58ffaf.png"/> <img width="275"  src="https://user-images.githubusercontent.com/49583943/125551816-6d372320-f58f-4787-840f-3490cf3a472c.png"/>
+
+<img width="796" src="https://user-images.githubusercontent.com/49583943/138620009-32d16b4a-d38b-4cb7-9650-db7f45f14520.png"/>
+
 
 ## 简介
 钉钉全自动打卡 + 远程打卡脚本，免root，基于auto.js，适用于蓝牙考勤机。
@@ -288,15 +290,16 @@ function sendEmail(title, message, attachFilePath) {
 
     // 网易邮箱大师
     var versoin = getPackageVersion(PACKAGE_ID_MAIL_163)
-    console.log("应用版本：" + versoin)
+    console.log("网易邮箱大师，应用版本：" + versoin)
+    
     var sp = versoin.split(".")
     if (sp[0] == 6) {
-        // 网易邮箱大师 6
+        // 网易邮箱大师 6.0
         waitForActivity("com.netease.mobimail.activity.MailComposeActivity")
         id("send").findOne().click()
     }
     else {
-        // 网易邮箱大师 7
+        // 网易邮箱大师 7.0
         waitForActivity("com.netease.mobimail.module.mailcompose.MailComposeActivity")
         var input_address = id("input").findOne()
         if (null == input_address.getText()) {
