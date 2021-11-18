@@ -21,8 +21,7 @@
 
 同理，监听到钉钉发出的打卡成功通知后，将通知文本通过 QQ消息 或 邮件正文 发送，实现发送考勤结果的功能。
 
-![fP8nRzD05CVt-nGdioH3qnaFg4akJ0KfAcnTNkn7ujgv2tTdLGWXLLILQ082qG5K8g8WWXXQkbM88F5bOYTCV0LyjXMvpi20vE7T-__k__xtv1sbGUgm7n3bUtm04lgq0uxVbIBaRbC4Gj9RhLQhmPe5eWVSFPIUriYfbY6IWgRmSOZSGVgKrAKKXva7Gnpi-KyQGGBN7IraGqWNvQQuw](https://user-images.githubusercontent.com/49583943/137491064-95a2f72c-08d8-4bfc-b887-5a2160bfbf7e.png)
-
+![image](https://user-images.githubusercontent.com/49583943/142336739-4f7306a7-1d82-4ed9-b0d5-ec04ce0893c2.png)
 
 ## 脚本
 ```javascript
@@ -655,14 +654,7 @@ function getCurrentDate(){
 
 // 通知过滤器
 function filterNotification(bundleId, abstract, text) {
-    if (text != null) {
-        if (text.indexOf("活动") >= 0) {
-            return false
-        }
-    }
-
     var check = PACKAGE_ID_WHITE_LIST.some(function(item) {return bundleId == item})
-    
     if (!NOTIFICATIONS_FILTER || check) {
         console.verbose(bundleId)
         console.verbose(abstract)
