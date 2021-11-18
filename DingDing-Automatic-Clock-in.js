@@ -262,21 +262,21 @@ function sendEmail(title, message, attachFilePath) {
     }
 
     // 网易邮箱大师
-	var versoin = getPackageVersion(PACKAGE_ID_MAIL_163)
-	console.log("应用版本：" + versoin)
-	var sp = versoin.split(".")
-	if (sp[0] == 6) {
-    	// 网易邮箱大师 6
+    var versoin = getPackageVersion(PACKAGE_ID_MAIL_163)
+    console.log("应用版本：" + versoin)
+    var sp = versoin.split(".")
+    if (sp[0] == 6) {
+        // 网易邮箱大师 6
         waitForActivity("com.netease.mobimail.activity.MailComposeActivity")
-    	id("send").findOne().click()
-	}
-	else {
-    	// 网易邮箱大师 7
+        id("send").findOne().click()
+    }
+    else {
+        // 网易邮箱大师 7
         waitForActivity("com.netease.mobimail.module.mailcompose.MailComposeActivity")
-   		var input_address = id("input").findOne()
-    	if (null == input_address.getText()) {
-        	input_address.setText(EMAILL_ADDRESS)
-    	}
+        var input_address = id("input").findOne()
+        if (null == input_address.getText()) {
+            input_address.setText(EMAILL_ADDRESS)
+        }
         id("iv_arrow").findOne().click()
         sleep(1000)
         id("img_send_bg").findOne().click()
@@ -627,14 +627,7 @@ function getCurrentDate(){
 
 // 通知过滤器
 function filterNotification(bundleId, abstract, text) {
-    if (text != null) {
-        if (text.indexOf("活动") >= 0) {
-            return false
-        }
-    }
-
-    var check = PACKAGE_ID_WHITE_LIST.some(function(item) {return bundleId == item})
-    
+    var check = PACKAGE_ID_WHITE_LIST.some(function(item) {return bundleId == item}) 
     if (!NOTIFICATIONS_FILTER || check) {
         console.verbose(bundleId)
         console.verbose(abstract)
