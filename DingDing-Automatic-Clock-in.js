@@ -1,8 +1,7 @@
-```javascript
 /*
  * @Author: George Huan
  * @Date: 2020-08-03 09:30:30
- * @LastEditTime: 2021-10-23 17:45:40
+ * @LastEditTime: 2022-03-01 11:28:32
  * @Description: DingDing-Automatic-Clock-in (Run on AutoJs)
  * @URL: https://github.com/georgehuan1994/DingDing-Automatic-Clock-in
  */
@@ -12,6 +11,15 @@ const PASSWORD = "钉钉密码"
 
 const QQ = "用于接收打卡结果的QQ号"
 const EMAILL_ADDRESS = "用于接收打卡结果的邮箱地址"
+const SERVER_CHAN = "Server酱发送密钥"
+
+const PUSH_METHOD = {QQ: 1, Email: 2, ServerChan: 3,}
+
+// 默认通信方式：
+// PUSH_METHOD.QQ -- QQ
+// PUSH_METHOD.Email -- Email 
+// PUSH_METHOD.ServerChan -- Server酱
+var DEFAULT_MESSAGE_DELIVER = PUSH_METHOD.QQ;
 
 const PACKAGE_ID_QQ = "com.tencent.mobileqq"                // QQ
 const PACKAGE_ID_DD = "com.alibaba.android.rimet"           // 钉钉
@@ -85,12 +93,13 @@ events.onKeyDown("volume_up", function(event){
     threads.shutDownAll()
     device.setBrightnessMode(1)
     device.cancelKeepingAwake()
-    toast("已中断所有子线程！")
+    toast("已中断所有子线程!")
 
     // 可以在此调试各个方法
     // doClock()
     // sendQQMsg("测试文本")
     // sendEmail("测试主题", "测试文本", null)
+    // sendServerChan(测试主题, 测试文本)
 });
 
 toastLog("监听中，请在日志中查看记录的通知及其内容")
@@ -136,10 +145,17 @@ function notificationHandler(n) {
         case "查询": // 监听文本为 "查询" 的通知
             threads.shutDownAll()
             threads.start(function(){
-                if(packageId == PACKAGE_ID_QQ)
-                    sendQQMsg(getStorageData("dingding", "clockResult"))
-                if(packageId == PACKAGE_ID_MAIL_163)
-                    sendEmail("考勤结果", getStorageData("dingding", "clockResult"), null)
+                switch(DEFAULT_MESSAGE_DELIVER) {
+                    case PUSH_METHOD.QQ:
+                        sendQQMsg(getStorageData("dingding", "clockResult"))
+                       break;
+                    case PUSH_METHOD.Email:
+                        sendEmail("考勤结果", getStorageData("dingding", "clockResult"), null)
+                       break;
+                    case PUSH_METHOD.ServerChan:
+                        sendServerChan("考勤结果", getStorageData("dingding", "clockResult"))
+                       break;
+                }
             })
             break;
 
@@ -148,10 +164,17 @@ function notificationHandler(n) {
             console.warn("暂停定时打卡")
             threads.shutDownAll()
             threads.start(function(){
-                if(packageId == PACKAGE_ID_QQ)
-                    sendQQMsg("修改成功，已暂停定时打卡功能")
-                if(packageId == PACKAGE_ID_MAIL_163)
-                    sendEmail("修改成功", "已暂停定时打卡功能", null)
+                switch(DEFAULT_MESSAGE_DELIVER) {
+                    case PUSH_METHOD.QQ:
+                        sendQQMsg("修改成功，已暂停定时打卡功能")
+                       break;
+                    case PUSH_METHOD.Email:
+                        sendEmail("修改成功", "已暂停定时打卡功能", null)
+                       break;
+                    case PUSH_METHOD.ServerChan:
+                        sendServerChan("修改成功", "已暂停定时打卡功能")
+                       break;
+                }
             })
             break;
 
@@ -160,10 +183,17 @@ function notificationHandler(n) {
             console.warn("恢复定时打卡")
             threads.shutDownAll()
             threads.start(function(){
-                if(packageId == PACKAGE_ID_QQ)
-                    sendQQMsg("修改成功，已恢复定时打卡功能")
-                if(packageId == PACKAGE_ID_MAIL_163)
-                    sendEmail("修改成功", "已恢复定时打卡功能", null)
+                switch(DEFAULT_MESSAGE_DELIVER) {
+                    case PUSH_METHOD.QQ:
+                        sendQQMsg("修改成功，已恢复定时打卡功能")
+                       break;
+                    case PUSH_METHOD.Email:
+                        sendEmail("修改成功", "已恢复定时打卡功能", null)
+                       break;
+                    case PUSH_METHOD.ServerChan:
+                        sendServerChan("修改成功", "已恢复定时打卡功能")
+                       break;
+                }
             })
             break;
 
@@ -186,8 +216,17 @@ function notificationHandler(n) {
         setStorageData("dingding", "clockResult", text)
         threads.shutDownAll()
         threads.start(function() {
-            sendQQMsg(text)
-            // sendEmail("考勤结果", text, null)
+            switch(DEFAULT_MESSAGE_DELIVER) {
+                case PUSH_METHOD.QQ:
+                    sendQQMsg(text)
+                   break;
+                case PUSH_METHOD.Email:
+                    sendEmail("考勤结果", text, cameraFilePath)
+                   break;
+                case PUSH_METHOD.ServerChan:
+                    sendServerChan("考勤结果", text)
+                   break;
+           }
         })
         return;
     }
@@ -200,8 +239,8 @@ function notificationHandler(n) {
 function doClock() {
 
     currentDate = new Date()
-    console.log("本地时间：" + getCurrentDate() + " " + getCurrentTime())
-    console.log("开始打卡流程！")
+    console.log("本地时间: " + getCurrentDate() + " " + getCurrentTime())
+    console.log("开始打卡流程!")
 
     brightScreen()      // 唤醒屏幕
     unlockScreen()      // 解锁屏幕
@@ -227,7 +266,7 @@ function doClock() {
  */
 function sendEmail(title, message, attachFilePath) {
 
-    console.log("开始发送邮件流程！")
+    console.log("开始发送邮件流程!")
 
     brightScreen()      // 唤醒屏幕
     unlockScreen()      // 解锁屏幕
@@ -256,14 +295,14 @@ function sendEmail(title, message, attachFilePath) {
         }
     }
     else {
-        console.error("不存在应用：" + PACKAGE_ID_MAIL_163)
+        console.error("不存在应用: " + PACKAGE_ID_MAIL_163)
         lockScreen()
         return;
     }
 
     // 网易邮箱大师
     var versoin = getPackageVersion(PACKAGE_ID_MAIL_163)
-    console.log("应用版本：" + versoin)
+    console.log("应用版本: " + versoin)
     var sp = versoin.split(".")
     if (sp[0] == 6) {
         // 网易邮箱大师 6
@@ -323,6 +362,28 @@ function sendQQMsg(message) {
 
 
 /**
+ * @description ServerChan推送
+ * @param {string} title 标题
+ * @param {string} message 消息
+ */
+ function sendServerChan(title, message) {
+
+    console.log("向 ServerChan 发起推送请求")
+
+    url = "https://sctapi.ftqq.com/" + SERVER_CHAN + ".send";
+
+    res = http.post(encodeURI(url), {
+        "title": title,
+        "desp": message
+    });
+
+    console.log(res)
+    sleep(1000)
+    lockScreen()    // 关闭屏幕
+}
+
+
+/**
  * @description 唤醒设备
  */
 function brightScreen() {
@@ -374,7 +435,7 @@ function unlockScreen() {
     }
 
     if (isDeviceLocked()) {
-        console.error("上滑解锁失败，请按脚本中的注释调整 gesture(time, [x1,y1], [x2,y2]) 方法的参数！")
+        console.error("上滑解锁失败，请按脚本中的注释调整 gesture(time, [x1,y1], [x2,y2]) 方法的参数!")
         return;
     }
     console.info("屏幕已解锁")
@@ -501,7 +562,7 @@ function clockIn() {
     sleep(2000)
     
     if (null != textContains("未连接").findOne(1000)) {
-        console.error("未连接考勤机，重新进入考勤界面！")
+        console.error("未连接考勤机，重新进入考勤界面!")
         back()
         sleep(2000)
         attendKaoqin()
@@ -539,7 +600,7 @@ function clockOut() {
     sleep(2000)
     
     if (null != textContains("未连接").findOne(1000)) {
-        console.error("未连接考勤机，重新进入考勤界面！")
+        console.error("未连接考勤机，重新进入考勤界面!")
         back()
         sleep(2000)
         attendKaoqin()

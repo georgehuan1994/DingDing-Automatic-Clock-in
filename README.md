@@ -28,7 +28,7 @@
 /*
  * @Author: George Huan
  * @Date: 2020-08-03 09:30:30
- * @LastEditTime: 2021-10-23 17:45:40
+ * @LastEditTime: 2022-03-01 11:11:20
  * @Description: DingDing-Automatic-Clock-in (Run on AutoJs)
  * @URL: https://github.com/georgehuan1994/DingDing-Automatic-Clock-in
  */
@@ -38,6 +38,15 @@ const PASSWORD = "钉钉密码"
 
 const QQ = "用于接收打卡结果的QQ号"
 const EMAILL_ADDRESS = "用于接收打卡结果的邮箱地址"
+const SERVER_CHAN = "Server酱发送密钥"
+
+const PUSH_METHOD = {QQ: 1, Email: 2, ServerChan: 3,}
+
+// 默认通信方式：
+// PUSH_METHOD.QQ -- QQ
+// PUSH_METHOD.Email -- Email 
+// PUSH_METHOD.ServerChan -- Server酱
+var DEFAULT_MESSAGE_DELIVER = PUSH_METHOD.QQ;
 
 const PACKAGE_ID_QQ = "com.tencent.mobileqq"                // QQ
 const PACKAGE_ID_DD = "com.alibaba.android.rimet"           // 钉钉
@@ -111,12 +120,13 @@ events.onKeyDown("volume_up", function(event){
     threads.shutDownAll()
     device.setBrightnessMode(1)
     device.cancelKeepingAwake()
-    toast("已中断所有子线程！")
+    toast("已中断所有子线程!")
 
     // 可以在此调试各个方法
     // doClock()
     // sendQQMsg("测试文本")
     // sendEmail("测试主题", "测试文本", null)
+    // sendServerChan(测试主题, 测试文本)
 });
 
 toastLog("监听中，请在日志中查看记录的通知及其内容")
@@ -162,10 +172,17 @@ function notificationHandler(n) {
         case "查询": // 监听文本为 "查询" 的通知
             threads.shutDownAll()
             threads.start(function(){
-                if(packageId == PACKAGE_ID_QQ)
-                    sendQQMsg(getStorageData("dingding", "clockResult"))
-                if(packageId == PACKAGE_ID_MAIL_163)
-                    sendEmail("考勤结果", getStorageData("dingding", "clockResult"), null)
+                switch(DEFAULT_MESSAGE_DELIVER) {
+                    case PUSH_METHOD.QQ:
+                        sendQQMsg(getStorageData("dingding", "clockResult"))
+                       break;
+                    case PUSH_METHOD.Email:
+                        sendEmail("考勤结果", getStorageData("dingding", "clockResult"), null)
+                       break;
+                    case PUSH_METHOD.ServerChan:
+                        sendServerChan("考勤结果", getStorageData("dingding", "clockResult"))
+                       break;
+                }
             })
             break;
 
@@ -174,10 +191,17 @@ function notificationHandler(n) {
             console.warn("暂停定时打卡")
             threads.shutDownAll()
             threads.start(function(){
-                if(packageId == PACKAGE_ID_QQ)
-                    sendQQMsg("修改成功，已暂停定时打卡功能")
-                if(packageId == PACKAGE_ID_MAIL_163)
-                    sendEmail("修改成功", "已暂停定时打卡功能", null)
+                switch(DEFAULT_MESSAGE_DELIVER) {
+                    case PUSH_METHOD.QQ:
+                        sendQQMsg("修改成功，已暂停定时打卡功能")
+                       break;
+                    case PUSH_METHOD.Email:
+                        sendEmail("修改成功", "已暂停定时打卡功能", null)
+                       break;
+                    case PUSH_METHOD.ServerChan:
+                        sendServerChan("修改成功", "已暂停定时打卡功能")
+                       break;
+                }
             })
             break;
 
@@ -186,10 +210,17 @@ function notificationHandler(n) {
             console.warn("恢复定时打卡")
             threads.shutDownAll()
             threads.start(function(){
-                if(packageId == PACKAGE_ID_QQ)
-                    sendQQMsg("修改成功，已恢复定时打卡功能")
-                if(packageId == PACKAGE_ID_MAIL_163)
-                    sendEmail("修改成功", "已恢复定时打卡功能", null)
+                switch(DEFAULT_MESSAGE_DELIVER) {
+                    case PUSH_METHOD.QQ:
+                        sendQQMsg("修改成功，已恢复定时打卡功能")
+                       break;
+                    case PUSH_METHOD.Email:
+                        sendEmail("修改成功", "已恢复定时打卡功能", null)
+                       break;
+                    case PUSH_METHOD.ServerChan:
+                        sendServerChan("修改成功", "已恢复定时打卡功能")
+                       break;
+                }
             })
             break;
 
@@ -212,8 +243,17 @@ function notificationHandler(n) {
         setStorageData("dingding", "clockResult", text)
         threads.shutDownAll()
         threads.start(function() {
-            sendQQMsg(text)
-            // sendEmail("考勤结果", text, null)
+            switch(DEFAULT_MESSAGE_DELIVER) {
+                case PUSH_METHOD.QQ:
+                    sendQQMsg(text)
+                   break;
+                case PUSH_METHOD.Email:
+                    sendEmail("考勤结果", text, cameraFilePath)
+                   break;
+                case PUSH_METHOD.ServerChan:
+                    sendServerChan("考勤结果", text)
+                   break;
+           }
         })
         return;
     }
@@ -226,8 +266,8 @@ function notificationHandler(n) {
 function doClock() {
 
     currentDate = new Date()
-    console.log("本地时间：" + getCurrentDate() + " " + getCurrentTime())
-    console.log("开始打卡流程！")
+    console.log("本地时间: " + getCurrentDate() + " " + getCurrentTime())
+    console.log("开始打卡流程!")
 
     brightScreen()      // 唤醒屏幕
     unlockScreen()      // 解锁屏幕
@@ -253,7 +293,7 @@ function doClock() {
  */
 function sendEmail(title, message, attachFilePath) {
 
-    console.log("开始发送邮件流程！")
+    console.log("开始发送邮件流程!")
 
     brightScreen()      // 唤醒屏幕
     unlockScreen()      // 解锁屏幕
@@ -282,23 +322,22 @@ function sendEmail(title, message, attachFilePath) {
         }
     }
     else {
-        console.error("不存在应用：" + PACKAGE_ID_MAIL_163)
+        console.error("不存在应用: " + PACKAGE_ID_MAIL_163)
         lockScreen()
         return;
     }
 
     // 网易邮箱大师
     var versoin = getPackageVersion(PACKAGE_ID_MAIL_163)
-    console.log("网易邮箱大师，应用版本：" + versoin)
-    
+    console.log("应用版本: " + versoin)
     var sp = versoin.split(".")
     if (sp[0] == 6) {
-        // 网易邮箱大师 6.0
+        // 网易邮箱大师 6
         waitForActivity("com.netease.mobimail.activity.MailComposeActivity")
         id("send").findOne().click()
     }
     else {
-        // 网易邮箱大师 7.0
+        // 网易邮箱大师 7
         waitForActivity("com.netease.mobimail.module.mailcompose.MailComposeActivity")
         var input_address = id("input").findOne()
         if (null == input_address.getText()) {
@@ -344,6 +383,28 @@ function sendQQMsg(message) {
     id("fun_btn").findOne().click()
 
     home()
+    sleep(1000)
+    lockScreen()    // 关闭屏幕
+}
+
+
+/**
+ * @description ServerChan推送
+ * @param {string} title 标题
+ * @param {string} message 消息
+ */
+ function sendServerChan(title, message) {
+
+    console.log("向 ServerChan 发起推送请求")
+
+    url = "https://sctapi.ftqq.com/" + SERVER_CHAN + ".send";
+
+    res = http.post(encodeURI(url), {
+        "title": title,
+        "desp": message
+    });
+
+    console.log(res)
     sleep(1000)
     lockScreen()    // 关闭屏幕
 }
@@ -401,7 +462,7 @@ function unlockScreen() {
     }
 
     if (isDeviceLocked()) {
-        console.error("上滑解锁失败，请按脚本中的注释调整 gesture(time, [x1,y1], [x2,y2]) 方法的参数！")
+        console.error("上滑解锁失败，请按脚本中的注释调整 gesture(time, [x1,y1], [x2,y2]) 方法的参数!")
         return;
     }
     console.info("屏幕已解锁")
@@ -528,7 +589,7 @@ function clockIn() {
     sleep(2000)
     
     if (null != textContains("未连接").findOne(1000)) {
-        console.error("未连接考勤机，重新进入考勤界面！")
+        console.error("未连接考勤机，重新进入考勤界面!")
         back()
         sleep(2000)
         attendKaoqin()
@@ -566,7 +627,7 @@ function clockOut() {
     sleep(2000)
     
     if (null != textContains("未连接").findOne(1000)) {
-        console.error("未连接考勤机，重新进入考勤界面！")
+        console.error("未连接考勤机，重新进入考勤界面!")
         back()
         sleep(2000)
         attendKaoqin()
@@ -654,7 +715,7 @@ function getCurrentDate(){
 
 // 通知过滤器
 function filterNotification(bundleId, abstract, text) {
-    var check = PACKAGE_ID_WHITE_LIST.some(function(item) {return bundleId == item})
+    var check = PACKAGE_ID_WHITE_LIST.some(function(item) {return bundleId == item}) 
     if (!NOTIFICATIONS_FILTER || check) {
         console.verbose(bundleId)
         console.verbose(abstract)
@@ -737,7 +798,7 @@ Tasker 也是一个安卓自动化神器，与 Auto.js 结合使用可胜任日�
 1. 添加一个 「通知」 操作任务，通知标题修改为 「定时打卡」，通知文字随意，通知优先级设为1。
 2. 添加两个配置文件，使用日期和时间作为条件，分别在上班前和下班后触发。
 
-你也可以[下载配置文件](https://github.com/georgehuan1994/DingDing-Automatic-Clock-in/tree/master/Tasker配置)，导入到Tasker中使用，方法如下：
+你也可以[下载配置文件](https://github.com/georgehuan1994/DingDing-Automatic-Clock-in/tree/master/Tasker配置)，导入到 Tasker 中使用，方法如下：
 
 1. 长按 菜单栏-任务，导入"发送通知.tsk.xml"。
 2. 长按 菜单栏-配置文件，导入"上班打卡.prf.xml" 和 "下班打卡.prf.xml"。
@@ -753,13 +814,25 @@ Tasker 也是一个安卓自动化神器，与 Auto.js 结合使用可胜任日�
 - 向本机的 QQ 发送消息 「恢复」，或回复标题为 「恢复」 的邮件，即可恢复定时打卡功能。
 
 ## 注意事项
-- 首次启动AutoJs，需要为其开启无障碍权限。
-- 运行脚本前，请在AutoJs菜单栏中（从屏幕左边划出），开启 「通知读取权限」。
-- AutoJs、Tasker可息屏运行，需要在系统设置中开启通知亮屏。
-- 为保证AutoJs、Tasker进程不被系统清理，可调整它们的电池管理策略、加入管理应用的白名单，为其开启前台服务、添加应用锁...
+
+- AutoJs Pro 版本屏蔽了一些主流应用，如果要使用 QQ 作为回复方式，不要使用 AutoJs Pro 版！
+- 首次启动 AutoJs，需要为其开启无障碍权限。
+- 运行脚本前，请在 AutoJs 菜单栏中（从屏幕左边划出），开启 「通知读取权限」。
+- AutoJs、Tasker 可息屏运行，需要在系统设置中开启通知亮屏。
+- 为保证 AutoJs、Tasker 进程不被系统清理，可调整它们的电池管理策略、加入管理应用的白名单，为其开启前台服务、添加应用锁...
 - 虽然脚本可执行完整的打卡步骤，但推荐开启钉钉的极速打卡功能，在钉钉启动时即可完成打卡，应把后续的步骤视为极速打卡失败后的保险措施。
 
 ## 更新日志
+
+
+
+### 2022-03-01
+<details open>
+<summary></summary>
+
+1. 可以通过Server酱来推送考勤结果
+</details>
+
 ### 2021-10-23
 <details open>
 <summary></summary>
