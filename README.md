@@ -14,7 +14,7 @@
 ## 工具
 - auto.js
 - Tasker
-- 一款通讯应用（示例脚本中使用的是 QQ 和 网易邮箱大师，彼此互为备用方案）
+- 一款通讯应用（示例脚本中使用的是 QQ / 网易邮箱大师 / ServerChan / PushDeer，彼此互为备用方案）
 
 ## 原理
 通过 auto.js 脚本监听本机通知，在 Tasker 中创建定时任务，发出通知，或在另一设备上发送消息到本机，即可触发脚本中的打卡进程，实现定时打卡和远程打卡。
@@ -28,7 +28,7 @@
 /*
  * @Author: George Huan
  * @Date: 2020-08-03 09:30:30
- * @LastEditTime: 2022-03-01 11:11:20
+ * @LastEditTime: 2022-03-26 10:56:25
  * @Description: DingDing-Automatic-Clock-in (Run on AutoJs)
  * @URL: https://github.com/georgehuan1994/DingDing-Automatic-Clock-in
  */
@@ -36,16 +36,18 @@
 const ACCOUNT = "钉钉账号"
 const PASSWORD = "钉钉密码"
 
-const QQ = "用于接收打卡结果的QQ号"
-const EMAILL_ADDRESS = "用于接收打卡结果的邮箱地址"
-const SERVER_CHAN = "Server酱发送密钥"
+const QQ =              "用于接收打卡结果的QQ号"
+const EMAILL_ADDRESS =  "用于接收打卡结果的邮箱地址"
+const SERVER_CHAN =     "Server酱发送密钥"
+const PUSH_DEER =       "PushDeer发送密钥"
 
-const PUSH_METHOD = {QQ: 1, Email: 2, ServerChan: 3,}
+const PUSH_METHOD = {QQ: 1, Email: 2, ServerChan: 3, PushDeer: 4}
 
 // 默认通信方式：
 // PUSH_METHOD.QQ -- QQ
 // PUSH_METHOD.Email -- Email 
 // PUSH_METHOD.ServerChan -- Server酱
+// PUSH_METHOD.PushDeer -- Push Deer
 var DEFAULT_MESSAGE_DELIVER = PUSH_METHOD.QQ;
 
 const PACKAGE_ID_QQ = "com.tencent.mobileqq"                // QQ
@@ -54,26 +56,27 @@ const PACKAGE_ID_XMSF = "com.xiaomi.xmsf"                   // 小米推送服�
 const PACKAGE_ID_TASKER = "net.dinglisch.android.taskerm"   // Tasker
 const PACKAGE_ID_MAIL_163 = "com.netease.mail"              // 网易邮箱大师
 const PACKAGE_ID_MAIL_ANDROID = "com.android.email"         // 系统内置邮箱
+const PACKAGE_ID_PUSHDEER = "com.pushdeer.os"               // Push Deer
 
 const LOWER_BOUND = 1 * 60 * 1000 // 最小等待时间：1min
 const UPPER_BOUND = 5 * 60 * 1000 // 最大等待时间：5min
 
-// 执行时的屏幕亮度（0-255），需要"修改系统设置"权限
+// 执行时的屏幕亮度（0-255）, 需要"修改系统设置"权限
 const SCREEN_BRIGHTNESS = 20    
 
 // 是否过滤通知
 const NOTIFICATIONS_FILTER = true
 
 // PackageId白名单
-const PACKAGE_ID_WHITE_LIST = [PACKAGE_ID_QQ,PACKAGE_ID_DD,PACKAGE_ID_XMSF,PACKAGE_ID_MAIL_163,PACKAGE_ID_TASKER,]
+const PACKAGE_ID_WHITE_LIST = [PACKAGE_ID_QQ,PACKAGE_ID_DD,PACKAGE_ID_XMSF,PACKAGE_ID_MAIL_163,PACKAGE_ID_TASKER,PACKAGE_ID_PUSHDEER]
 
-// 公司的钉钉CorpId，获取方法见 2020-09-24 更新日志。如果只加入了一家公司，可以不填
+// 公司的钉钉CorpId, 获取方法见 2020-09-24 更新日志。如果只加入了一家公司, 可以不填
 const CORP_ID = "" 
 
-// 锁屏意图，配合 Tasker 完成锁屏动作，具体配置方法见 2021-03-09 更新日志
+// 锁屏意图, 配合 Tasker 完成锁屏动作, 具体配置方法见 2021-03-09 更新日志
 const ACTION_LOCK_SCREEN = "autojs.intent.action.LOCK_SCREEN"
 
-// 监听音量+键，开启后无法通过音量+键调整音量，按下音量+键：结束所有子线程
+// 监听音量+键, 开启后无法通过音量+键调整音量, 按下音量+键：结束所有子线程
 const OBSERVE_VOLUME_KEY = true
 
 const WEEK_DAY = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday",]
@@ -127,9 +130,10 @@ events.onKeyDown("volume_up", function(event){
     // sendQQMsg("测试文本")
     // sendEmail("测试主题", "测试文本", null)
     // sendServerChan(测试主题, 测试文本)
+    // sendPushDeer(测试主题, 测试文本)
 });
 
-toastLog("监听中，请在日志中查看记录的通知及其内容")
+toastLog("监听中, 请在日志中查看记录的通知及其内容")
 
 // =================== ↑↑↑ 主线程：监听通知 ↑↑↑ =====================
 
@@ -149,7 +153,7 @@ function notificationHandler(n) {
         return;
     }
 
-    // 监听摘要为 "定时打卡" 的通知，不一定要从 Tasker 中发出通知，日历、定时器等App均可实现
+    // 监听摘要为 "定时打卡" 的通知, 不一定要从 Tasker 中发出通知, 日历、定时器等App均可实现
     if (abstract == "定时打卡" && !suspend) { 
         needWaiting = true
         threads.shutDownAll()
@@ -182,6 +186,9 @@ function notificationHandler(n) {
                     case PUSH_METHOD.ServerChan:
                         sendServerChan("考勤结果", getStorageData("dingding", "clockResult"))
                        break;
+                    case PUSH_METHOD.PushDeer:
+                        sendPushDeer("考勤结果", getStorageData("dingding", "clockResult"))
+                       break;
                 }
             })
             break;
@@ -193,13 +200,16 @@ function notificationHandler(n) {
             threads.start(function(){
                 switch(DEFAULT_MESSAGE_DELIVER) {
                     case PUSH_METHOD.QQ:
-                        sendQQMsg("修改成功，已暂停定时打卡功能")
+                        sendQQMsg("修改成功, 已暂停定时打卡功能")
                        break;
                     case PUSH_METHOD.Email:
                         sendEmail("修改成功", "已暂停定时打卡功能", null)
                        break;
                     case PUSH_METHOD.ServerChan:
                         sendServerChan("修改成功", "已暂停定时打卡功能")
+                       break;
+                    case PUSH_METHOD.PushDeer:
+                        sendPushDeer("修改成功", "已暂停定时打卡功能")
                        break;
                 }
             })
@@ -212,13 +222,16 @@ function notificationHandler(n) {
             threads.start(function(){
                 switch(DEFAULT_MESSAGE_DELIVER) {
                     case PUSH_METHOD.QQ:
-                        sendQQMsg("修改成功，已恢复定时打卡功能")
+                        sendQQMsg("修改成功, 已恢复定时打卡功能")
                        break;
                     case PUSH_METHOD.Email:
                         sendEmail("修改成功", "已恢复定时打卡功能", null)
                        break;
                     case PUSH_METHOD.ServerChan:
                         sendServerChan("修改成功", "已恢复定时打卡功能")
+                       break;
+                    case PUSH_METHOD.PushDeer:
+                        sendPushDeer("修改成功", "已恢复定时打卡功能")
                        break;
                 }
             })
@@ -252,6 +265,9 @@ function notificationHandler(n) {
                    break;
                 case PUSH_METHOD.ServerChan:
                     sendServerChan("考勤结果", text)
+                   break;
+                case PUSH_METHOD.PushDeer:
+                    sendPushDeer("考勤结果", text)
                    break;
            }
         })
@@ -312,7 +328,7 @@ function sendEmail(title, message, attachFilePath) {
     }
     
     console.log("选择邮件应用")
-    waitForActivity("com.android.internal.app.ChooserActivity") // 等待选择应用界面弹窗出现，如果设置了默认应用就注释掉
+    waitForActivity("com.android.internal.app.ChooserActivity") // 等待选择应用界面弹窗出现, 如果设置了默认应用就注释掉
     
     var emailAppName = app.getAppName(PACKAGE_ID_MAIL_163)
     if (null != emailAppName) {
@@ -411,6 +427,30 @@ function sendQQMsg(message) {
 
 
 /**
+ * @description PushDeer推送
+ * @param {string} title 标题
+ * @param {string} message 消息
+ */
+ function sendPushDeer(title, message) {
+
+    console.log("向 PushDeer 发起推送请求")
+
+    url = "https://api2.pushdeer.com/message/push"
+
+    res = http.post(encodeURI(url), {
+        "pushkey": PUSH_DEER,
+        "text": title,
+        "desp": message,
+        "type": "markdown",
+    });
+
+    console.log(res)
+    sleep(1000)
+    lockScreen()    // 关闭屏幕
+}
+
+
+/**
  * @description 唤醒设备
  */
 function brightScreen() {
@@ -424,7 +464,7 @@ function brightScreen() {
     sleep(1000) // 等待屏幕亮起
     
     if (!device.isScreenOn()) {
-        console.warn("设备未唤醒，重试")
+        console.warn("设备未唤醒, 重试")
         device.wakeUpIfNeeded()
         brightScreen()
     }
@@ -448,7 +488,7 @@ function unlockScreen() {
             320, // 滑动时间：毫秒
             [
                 device.width  * 0.5,    // 滑动起点 x 坐标：屏幕宽度的一半
-                device.height * 0.9     // 滑动起点 y 坐标：距离屏幕底部 10% 的位置，华为系统需要往上一些
+                device.height * 0.9     // 滑动起点 y 坐标：距离屏幕底部 10% 的位置, 华为系统需要往上一些
             ],
             [
                 device.width / 2,       // 滑动终点 x 坐标：屏幕宽度的一半
@@ -462,7 +502,7 @@ function unlockScreen() {
     }
 
     if (isDeviceLocked()) {
-        console.error("上滑解锁失败，请按脚本中的注释调整 gesture(time, [x1,y1], [x2,y2]) 方法的参数!")
+        console.error("上滑解锁失败, 请按脚本中的注释调整 gesture(time, [x1,y1], [x2,y2]) 方法的参数!")
         return;
     }
     console.info("屏幕已解锁")
@@ -589,7 +629,7 @@ function clockIn() {
     sleep(2000)
     
     if (null != textContains("未连接").findOne(1000)) {
-        console.error("未连接考勤机，重新进入考勤界面!")
+        console.error("未连接考勤机, 重新进入考勤界面!")
         back()
         sleep(2000)
         attendKaoqin()
@@ -627,7 +667,7 @@ function clockOut() {
     sleep(2000)
     
     if (null != textContains("未连接").findOne(1000)) {
-        console.error("未连接考勤机，重新进入考勤界面!")
+        console.error("未连接考勤机, 重新进入考勤界面!")
         back()
         sleep(2000)
         attendKaoqin()
@@ -672,7 +712,7 @@ function lockScreen(){
     // 锁屏方案2：No Root
     // press(Math.floor(device.width / 2), Math.floor(device.height * 0.973), 1000) // 小米的快捷手势：长按Home键锁屏
     
-    // 万能锁屏方案：向Tasker发送广播，触发系统锁屏动作。配置方法见 2021-03-09 更新日志
+    // 万能锁屏方案：向Tasker发送广播, 触发系统锁屏动作。配置方法见 2021-03-09 更新日志
     app.sendBroadcast({action: ACTION_LOCK_SCREEN});
 
     device.setBrightnessMode(1) // 自动亮度模式
@@ -682,7 +722,7 @@ function lockScreen(){
         console.info("屏幕已关闭")
     }
     else {
-        console.error("屏幕未关闭，请尝试其他锁屏方案，或等待屏幕自动关闭")
+        console.error("屏幕未关闭, 请尝试其他锁屏方案, 或等待屏幕自动关闭")
     }
 }
 
@@ -774,6 +814,7 @@ function setVolume(volume) {
     console.verbose("媒体音量:" + device.getMusicVolume())
     console.verbose("通知音量:" + device.getNotificationVolume())
 }
+
 ```
 
 ## 工具介绍
@@ -806,12 +847,14 @@ Tasker 也是一个安卓自动化神器，与 Auto.js 结合使用可胜任日�
 
 ## 使用方法
 ### 远程打卡
-- 向本机的 QQ 发送消息 「打卡」，或回复标题为 「打卡」 的邮件，即可触发打卡进程。
-- 向本机的 QQ 发送消息 「查询」，或回复标题为 「查询」 的邮件，即可查询最新一次打卡结果。
+
+- 向本机的 QQ 发送消息 「打卡」，或回复标题为 「打卡」 的邮件，或向 PushDeer 发送标题为「打卡」 的推送请求，即可触发打卡进程。
+- 向本机的 QQ 发送消息 「查询」，或回复标题为 「查询」 的邮件，或向 PushDeer 发送标题为「查询」 的推送请求，即可查询最新一次打卡结果。
 
 ### 暂停/恢复定时打卡
-- 向本机的 QQ 发送消息 「暂停」，或回复标题为 「暂停」 的邮件，即可暂停定时打卡功能（仅暂停定时打卡，不影响远程打卡功能）
-- 向本机的 QQ 发送消息 「恢复」，或回复标题为 「恢复」 的邮件，即可恢复定时打卡功能。
+
+- 向本机的 QQ 发送消息 「暂停」，或回复标题为 「暂停」 的邮件，或向 PushDeer 发送标题为「暂停」 的推送请求，即可暂停定时打卡功能（仅暂停定时打卡，不影响远程打卡功能）
+- 向本机的 QQ 发送消息 「恢复」，或回复标题为 「恢复」 的邮件，或向 PushDeer 发送标题为「恢复」 的推送请求，即可恢复定时打卡功能。
 
 ## 注意事项
 
@@ -824,7 +867,12 @@ Tasker 也是一个安卓自动化神器，与 Auto.js 结合使用可胜任日�
 
 ## 更新日志
 
+### 2022-03-26
+<details open>
+<summary></summary>
 
+1. 可以通过 PushDeer 接收通知、推送考勤结果
+</details>
 
 ### 2022-03-01
 <details open>
