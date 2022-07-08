@@ -825,24 +825,30 @@ function setVolume(volume) {
 
 ### Auto.js
 
-Auto.js是利用安卓系统的 「无障碍服务」 实现类似于按键精灵一样，可以通过代码模拟一系列界面动作的辅助工作。
+Auto.js 是利用安卓系统的 「无障碍服务」 实现类似于按键精灵一样，可以通过代码模拟一系列界面动作的辅助工具。
 
 与 「按键精灵」 不同的是，它的模拟动作并不是简单的使用在界面定坐标点来实现，而是找控件来实现的。
 
 免费版：[Auto.js 4.1.1a Alpha2-armeabi-v7a-release](https://github.com/georgehuan1994/DingDing-Automatic-Clock-in/raw/master/Autojs%204.1.1a%20Alpha2-armeabi-v7a-release.apk "Auto.js 4.1.1a Alpha2-armeabi-v7a-release")
 
-github：https://github.com/hyb1996/Auto.js
+github：[GitHub - hyb1996/Auto.js](https://github.com/hyb1996/Auto.js)
 
-官方文档：https://hyb1996.github.io/AutoJs-Docs/#/?id=%E7%BB%BC%E8%BF%B0
+官方文档：[首页 - Auto.js](https://hyb1996.github.io/AutoJs-Docs/)
 
 推荐使用[VS Code 插件](https://github.com/hyb1996/Auto.js-VSCode-Extension)进行调试，调试完成后，还能通过此插件将脚本保存到手机上。
 
 ### Tasker
-Tasker 也是一个安卓自动化神器，与 Auto.js 结合使用可胜任日常工作流。
+[Tasker](https://play.google.com/store/apps/details?id=net.dinglisch.android.taskerm) 也是一个安卓自动化神器，与 Auto.js 结合使用可胜任日常工作流。
 
-定时打卡配置：
+此处仅提供 Tasker 5.0 及以下的官方原版，原版不含正版验证，使用不受限制：
 
-1. 添加一个 「通知」 操作任务，通知标题修改为 「定时打卡」，通知文字随意，通知优先级设为1。
+[Tasker.4.9u4m.apk](https://github.com/georgehuan1994/DingDing-Automatic-Clock-in/blob/master/Tasker.4.9u4m.apk)
+
+[Tasker.5.0u7m.apk](https://github.com/georgehuan1994/DingDing-Automatic-Clock-in/blob/master/Tasker.5.0u7m.apk)
+
+Tasker 定时打卡配置：
+
+1. 添加一个 「通知」 操作任务，通知标题修改为 「定时打卡」，通知文字随意，通知优先级设为 1。
 2. 添加两个配置文件，使用日期和时间作为条件，分别在上班前和下班后触发。
 
 你也可以[下载配置文件](https://github.com/georgehuan1994/DingDing-Automatic-Clock-in/tree/master/Tasker配置)，导入到 Tasker 中使用，方法如下：
@@ -863,11 +869,12 @@ Tasker 也是一个安卓自动化神器，与 Auto.js 结合使用可胜任日�
 - 向本机的 QQ 发送消息 「暂停」，或回复标题为 「暂停」 的邮件，或向 PushDeer 发送标题为「暂停」 的推送请求，即可暂停定时打卡功能（仅暂停定时打卡，不影响远程打卡功能）
 - 向本机的 QQ 发送消息 「恢复」，或回复标题为 「恢复」 的邮件，或向 PushDeer 发送标题为「恢复」 的推送请求，即可恢复定时打卡功能。
 
-## ⚠️ 注意事项
+## ⚠️ 注意事项 (必读!!!)
 
 - AutoJs Pro 版本屏蔽了一些主流应用，如果要使用 QQ 作为回复方式，不要使用 AutoJs Pro 版！
 - 首次启动 AutoJs，需要为其开启无障碍权限。
 - 运行脚本前，请在 AutoJs 菜单栏中（从屏幕左边划出），开启 「通知读取权限」。
+- 若无法通过 `app.launchPackage()` 方法启动应用，请开启该应用的「自启动」「允许后台弹窗」。
 - AutoJs、Tasker 可息屏运行，需要在系统设置中开启通知亮屏。
 - 为保证 AutoJs、Tasker 进程不被系统清理，可调整它们的电池管理策略、加入管理应用的白名单，为其开启前台服务、添加应用锁...
 - 虽然脚本可执行完整的打卡步骤，但推荐开启钉钉的极速打卡功能，在钉钉启动时即可完成打卡，应把后续的步骤视为极速打卡失败后的保险措施。
